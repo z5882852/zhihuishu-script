@@ -1,0 +1,27 @@
+[user]
+username =
+password =
+
+[settings]
+check_auth = false
+
+[data]
+cookies_path = data/cookies.json
+log_folder = log/
+
+# 以下内容一般为常量，不了解不要修改
+[encrypt]
+# 验证码参数
+login_captcha_id = 75f9f716460a422f89a628f50fd8cc2b
+login_captcha_v = af2952a4
+
+# AES加密参数
+AES_IV = 1g3qqdh4jvbskb9x
+COURSE_AES_KEY = 7q9oko0vqb3la20r
+STUDY_AES_KEY = azp53h0kft7qi78q
+QA_AES_KEY = w1k5ntxecb8wmbc2
+
+# ev加密参数
+# D26666：学分课，D24444：见面课
+D26666_KEY = zzpttjd
+D24444_KET = zhihuishu
