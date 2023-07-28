@@ -57,9 +57,9 @@ def get_secret_str(username, password):
 
 
 class UserHandler:
-    def __init__(self, cookies={}):
+    def __init__(self, session):
         self.user = get_user()
-        self.cookies = cookies
+        self.session = session
         self.headers = {
             "Accept": "application/json, text/javascript, */*; q=0.01",
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
@@ -87,7 +87,7 @@ class UserHandler:
         params = {
             "time": int(time.time())
         }
-        response = requests.get(url, headers=self.headers, cookies=self.cookies, params=params)
+        response = self.session.get(url, headers=self.headers, params=params)
         if response.status_code != 200:
             return False
         data = response.json()
@@ -108,25 +108,22 @@ class UserHandler:
             return False, "获取验证码失败"
         url = "https://passport.zhihuishu.com/user/validateAccountAndPassword"
         data = {"secretStr": secret_str}
-        response = requests.post(url, headers=self.headers, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
             return False, f"登录失败, status_code: {response.status_code}"
         data = response.json()
         if data.get("status", 0) == -2:
             return False, f"登录失败, 账号或密码错误"
         elif data.get("status", 0) == 1:
-            self.cookies = merge_dict(requests.utils.dict_from_cookiejar(response.cookies), self.cookies)
             self.pwd = data.get("pwd", None)
             return True, "登录成功"
         return False, f"登录失败, response: {response.text}"
 
     def gologin(self, url):
         """获取cookies关键内容"""
-        response = requests.get(url, headers=self.headers, cookies=self.headers, allow_redirects=False)
+        response = self.session.get(url, headers=self.headers, allow_redirects=False)
         if not (response.status_code in (200, 302)):
             return False, response
-        cookies = requests.utils.dict_from_cookiejar(response.cookies)
-        self.cookies = merge_dict(self.cookies, cookies)
         return True, response
 
     def login(self):
@@ -146,22 +143,20 @@ class UserHandler:
             "pwd": self.pwd,
             "service": "https://onlineservice-api.zhihuishu.com/gateway/f/v1/login/gologin"
         }
-        response = requests.get(url, headers=self.headers, cookies=self.headers, params=params, allow_redirects=False)
+        response = self.session.get(url, headers=self.headers, params=params, allow_redirects=False)
         if response.status_code != 302:
             return False, f"登录失败, status_code: {response.status_code}"
-        cookies = requests.utils.dict_from_cookiejar(response.cookies)
-        self.cookies = merge_dict(self.cookies, cookies)
         while True:
             new_url = response.headers.get("location", None)
             if new_url is None:
                 return False, "登录失败: new_url is None"
-            if new_url == "https://onlineweb.zhihuishu.com" or "SESSION" in self.cookies:
+            if new_url == "https://onlineweb.zhihuishu.com" or "SESSION" in requests.utils.dict_from_cookiejar(self.session.cookies):
                 break
             success, response = self.gologin(new_url)
             if not success:
                 return False, f"登录失败, {response.status_code}"
         if not self.get_user_info():
-            return True, "登录失败, 无法验证身份"
+            return False, "登录失败, 无法验证身份"
         return True, "登录成功"
 
 
@@ -169,8 +164,8 @@ class UserHandler:
         """保存cookies至本地"""
         if not self.user_data:
             return False
-        if not self.cookies:
+        if not requests.utils.dict_from_cookiejar(self.session.cookies):
             return False
         if not ("uuid" in self.user_data):
             return False
-        append_cookies(get_user().get("username"), self.cookies)
+        append_cookies(get_user().get("username"), requests.utils.dict_from_cookiejar(self.session.cookies))

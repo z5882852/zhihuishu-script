@@ -2,7 +2,7 @@ import configparser
 import json
 import os
 
-
+import requests
 
 def merge_dict(dict_1: dict, dict_2: dict):
     dict_3 = {}
@@ -55,11 +55,22 @@ def get_config():
     return config
 
 
+def save_cookies(session):
+    cookies = requests.utils.dict_from_cookiejar(session.cookies)
+    if not cookies:
+        return
+    append_cookies(get_user().get("username"), cookies)
+
+
 def get_user():
     return {
         "username": get_config().get('user', 'username'),
         "password": get_config().get('user', 'password'),
     }
+
+
+def get_log_folder():
+    return get_config().get('data', 'log_folder')
 
 
 def get_cookies_path():
@@ -72,5 +83,21 @@ def get_cookies():
 
 def set_cookies(cookies):
     append_cookies(get_user().get("username"), cookies)
+
+
+def get_error_retry():
+    return int(get_config().get('settings', 'error_retry'))
+
+
+def enable_log():
+    return get_config().get('settings', 'enable_log') == "true"
+
+
+def enable_log_level():
+    return get_config().get('settings', 'enable_log_level').split(",")
+
+
+def print_info_level():
+    return get_config().get('settings', 'print_info_level') == "true"
 
 

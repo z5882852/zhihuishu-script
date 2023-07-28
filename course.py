@@ -7,13 +7,13 @@ import urllib
 
 import requests
 from urllib.parse import unquote
-from utils.utils import get_cookies
 from utils.encrypt import encrypt_params
+from utils.logger import Logger
 
 
-class Course:
-    def __init__(self, cookis={}):
-        self.cookies = cookis
+class QueryCourse:
+    def __init__(self, session):
+        self.session = session
         self.uuid = None
         self.headers = {}
         self.__headers()
@@ -39,9 +39,10 @@ class Course:
         }
 
     def __get_uuid(self):
-        if not ("CASLOGC" in self.cookies):
+        cookies = requests.utils.dict_from_cookiejar(self.session.cookies)
+        if not ("CASLOGC" in cookies):
             return
-        user_info = self.cookies.get("CASLOGC", None)
+        user_info = cookies.get("CASLOGC", None)
         try:
             self.uuid = json.loads(unquote(user_info)).get("uuid", None)
         except:
@@ -61,7 +62,7 @@ class Course:
             }, "COURSE_AES_KEY"),
             "date": int(time.time())
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
             print(f"查询共享课失败，status_code: {response.status_code}")
             return []
@@ -85,7 +86,7 @@ class Course:
             }, "COURSE_AES_KEY"),
             "date": int(time.time())
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
             print(f"查询校内学分课失败，status_code: {response.status_code}")
             return []
@@ -111,7 +112,7 @@ class Course:
             "uuid": self.uuid,
             "date": "2023-07-25T17:39:51.676Z"
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
             print(f"查询兴趣课失败，status_code: {response.status_code}")
             return []
@@ -137,7 +138,7 @@ class Course:
             }, "COURSE_AES_KEY"),
             "date": int(time.time())
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
             print(f"查询AI课失败，status_code: {response.status_code}")
             return []
@@ -153,6 +154,42 @@ class Course:
             print(f"AI课内容为空")
             return []
         return course_list
+
+
+class ShareCourse:
+    def __init__(self, session):
+        self.session = session
+        self.headers = {}
+        self.__headers()
+
+    def __headers(self):
+        self.headers = {
+            "Accept": "*/*",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "https://studyvideoh5.zhihuishu.com",
+            "Pragma": "no-cache",
+            "Referer": "https://studyvideoh5.zhihuishu.com/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.183",
+            "sec-ch-ua": "\"Not/A)Brand\";v=\"99\", \"Microsoft Edge\";v=\"115\", \"Chromium\";v=\"115\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\""
+        }
+
+    def go_login(self, go_link):
+        """
+        登录共享学分课视频页面，否则会出现code: 500错误
+        """
+        params = {
+            "fromurl": go_link
+        }
+        url = "https://studyservice-api.zhihuishu.com/login/gologin"
+        self.session.get(url, params=params)
 
     def query_course_info(self, recruit_and_course_id):
         """
@@ -178,16 +215,14 @@ class Course:
                 "recruitAndCourseId": recruit_and_course_id,
                 "dateFormate": timestamp
             }, "STUDY_AES_KEY"),
-            "date": timestamp
+            "dateFormate": str(timestamp)
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"查询课程信息失败，status_code: {response.status_code}")
-            return None
+            raise Exception(f"查询课程信息失败，status_code: {response.status_code}")
         data = response.json()
         if data.get("code", -1) != 0:
-            print(f"查询课程信息失败，response_code: {data.get('code', -1)}")
-            return None
+            raise Exception(f"查询课程信息失败，response_code: {data.get('code', -1)}")
         return data.get("data", None)
 
     def get_video_list(self, recruit_and_course_id):
@@ -238,14 +273,12 @@ class Course:
             }, "STUDY_AES_KEY"),
             "date": timestamp
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"获取课程视频列表失败，status_code: {response.status_code}")
-            return None
+            raise Exception(f"获取课程视频列表失败，status_code: {response.status_code}")
         data = response.json()
         if data.get("code", -1) != 0:
-            print(f"获取课程视频列表失败，response_code: {data.get('code', -1)}")
-            return None
+            raise Exception(f"获取课程视频列表失败，response_code: {data.get('code', -1)}")
         return data.get("data", None)
 
     def query_study_info(self, lessonIds, lessonVideoIds, recruitId):
@@ -284,14 +317,12 @@ class Course:
             }, "STUDY_AES_KEY"),
             "date": timestamp
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"查询课程信息失败，status_code: {response.status_code}")
-            return None
+            raise Exception(f"查询课程信息失败，status_code: {response.status_code}")
         data = response.json()
         if data.get("code", -1) != 0:
-            print(f"查询课程信息失败，response_code: {data.get('code', -1)}")
-            return None
+            raise Exception(f"查询课程信息失败，response_code: {data.get('code', -1)}")
         return data.get("data", None)
 
     def query_user_recruit_id_last_video_id(self, recruit_id):
@@ -315,14 +346,12 @@ class Course:
             }, "STUDY_AES_KEY"),
             "date": timestamp
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"查询上一次观看的视频ID失败，status_code: {response.status_code}")
-            return None
+            raise Exception(f"查询上一次观看的视频ID失败，status_code: {response.status_code}")
         data = response.json()
         if data.get("code", -1) != 0:
-            print(f"查询上一次观看的视频ID失败，response_code: {data.get('code', -1)}")
-            return None
+            raise Exception(f"查询上一次观看的视频ID失败，response_code: {data.get('code', -1)}")
         return data.get("data", None)
 
     def query_pre_learning_note(self, ccCourseId, chapterId, lessonId, recruitId, videoId, small_lesson_id=None):
@@ -380,14 +409,12 @@ class Course:
             "secretStr": encrypt_params(form_data, "STUDY_AES_KEY"),
             "date": timestamp
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"查询具体视频课程的学习信息失败，status_code: {response.status_code}")
-            return None
+            raise Exception(f"查询具体视频课程的学习信息失败，status_code: {response.status_code}")
         data = response.json()
         if data.get("code", -1) != 0:
-            print(f"查询具体视频课程的学习信息失败，response_code: {data.get('code', -1)}")
-            return None
+            raise Exception(f"查询具体视频课程的学习信息失败，response_code: {data.get('code', -1)}")
         return data.get("data", None)
 
     def get_video_pointer_info(self, lessonId, recruitId, courseId, small_lesson_id=None):
@@ -425,14 +452,12 @@ class Course:
             "secretStr": encrypt_params(form_data, "STUDY_AES_KEY"),
             "date": timestamp
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"获取视频额外内容检查点失败，status_code: {response.status_code}")
-            return None
+            raise Exception(f"获取视频额外内容检查点失败，status_code: {response.status_code}")
         data = response.json()
         if data.get("code", -1) != 0:
-            print(f"获取视频额外内容检查点失败，response_code: {data.get('code', -1)}")
-            return None
+            raise Exception(f"获取视频额外内容检查点失败，response_code: {data.get('code', -1)}")
         return data.get("data", None)
 
     def get_popup_exam(self, lessonId, questionIds, small_lesson_id=None):
@@ -490,14 +515,12 @@ class Course:
             "secretStr": encrypt_params(form_data, "STUDY_AES_KEY"),
             "date": timestamp
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"获取弹题数据失败，status_code: {response.status_code}")
-            return None
+            raise Exception(f"获取弹题数据失败，status_code: {response.status_code}")
         data = response.json()
         if data.get("code", -1) != 0:
-            print(f"获取弹题数据失败，response_code: {data.get('code', -1)}")
-            return None
+            raise Exception(f"获取弹题数据失败，response_code: {data.get('code', -1)}")
         return data.get("data", None)
 
     def submit_popup_exam(self, courseId, recruitId, testQuestionId, lessonId, answer, isCurrent, small_lesson_id=None):
@@ -533,14 +556,12 @@ class Course:
             "secretStr": encrypt_params(form_data, "STUDY_AES_KEY"),
             "date": timestamp
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"提交弹题答案失败，status_code: {response.status_code}")
-            return None
+            raise Exception(f"提交弹题答案失败，status_code: {response.status_code}")
         data = response.json()
         if data.get("code", -1) != 0:
-            print(f"提交弹题答案失败，response_code: {data.get('code', -1)}")
-            return None
+            raise Exception(f"提交弹题答案失败，response_code: {data.get('code', -1)}")
         return data.get("data", None)
 
     def save_database_interval_time_v2(self, ewssw, sdsew, zwsds, courseId):
@@ -567,12 +588,11 @@ class Course:
             }, "STUDY_AES_KEY"),
             "date": timestamp
         }
-        response = requests.post(url, headers=self.headers, cookies=self.cookies, data=data)
+        response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"提交视频学习进度，status_code: {response.status_code}")
-            return None
+
+            raise Exception(f"提交视频学习进度失败，status_code: {response.status_code}")
         data = response.json()
         if data.get("code", -1) != 0:
-            print(f"提交视频学习进度，response_code: {data.get('code', -1)}")
-            return None
+            raise Exception(f"提交视频学习进度失败，response_code: {data.get('code', -1)}")
         return data.get("data", None)
