@@ -41,17 +41,17 @@ class Logger:
     def info(self, message):
         if self.print_info_level:
             print(message)
-        if enable_log and "debug" in self.enable_level:
+        if enable_log and "info" in self.enable_level:
             self.logger.info(message)
 
     def warning(self, message):
-        if enable_log and "debug" in self.enable_level:
+        if enable_log and "warning" in self.enable_level:
             self.logger.warning(message)
 
     def error(self, message):
-        if enable_log and "debug" in self.enable_level:
+        if enable_log and "error" in self.enable_level:
             self.logger.error(message)
 
     def critical(self, message):
-        if enable_log and "debug" in self.enable_level:
+        if enable_log and "critical" in self.enable_level:
             self.logger.critical(message)

@@ -3,7 +3,10 @@ username =
 password =
 
 [settings]
-check_auth = false
+error_retry = 3
+enable_log = true
+enable_log_level = debug,info,warning,error,critical
+print_info_level = true
 
 [data]
 cookies_path = data/cookies.json
@@ -22,6 +25,6 @@ STUDY_AES_KEY = azp53h0kft7qi78q
 QA_AES_KEY = w1k5ntxecb8wmbc2
 
 # ev加密参数
-# D26666：学分课，D24444：见面课
+# D26666：学分课, D24444：见面课
 D26666_KEY = zzpttjd
 D24444_KET = zhihuishu
