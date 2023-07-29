@@ -276,10 +276,10 @@ class ShareCourse:
         }
         response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            raise Exception(f"获取课程视频列表失败，status_code: {response.status_code}")
+            raise Exception(f"获取课程视频列表失败，status_code: {response.status_code}, response: {response.text}")
         data = response.json()
         if data.get("code", -1) != 0:
-            raise Exception(f"获取课程视频列表失败，response_code: {data.get('code', -1)}")
+            raise Exception(f"获取课程视频列表失败，response_code: {data.get('code', -1)}, response: {data}")
         return data.get("data", None)
 
     def query_study_info(self, lessonIds, lessonVideoIds, recruitId):
@@ -320,10 +320,10 @@ class ShareCourse:
         }
         response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            raise Exception(f"查询课程信息失败，status_code: {response.status_code}")
+            raise Exception(f"查询学习信息，status_code: {response.status_code}, response: {response.text}")
         data = response.json()
         if data.get("code", -1) != 0:
-            raise Exception(f"查询课程信息失败，response_code: {data.get('code', -1)}")
+            raise Exception(f"查询学习信息，response_code: {data.get('code', -1)}, response: {data}")
         return data.get("data", None)
 
     def query_user_recruit_id_last_video_id(self, recruit_id):

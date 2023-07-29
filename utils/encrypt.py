@@ -128,7 +128,13 @@ class EncryptShareVideoSaveParams:
         self.uuid = uuid
 
     def set_ev_list(self, played_time: int, last_submit_time: int):
-        return [
+        """
+        构建ev参数列表
+        """
+        # 判断small_lesson_id是否为存在
+        if self.small_lesson_id is None:
+            self.small_lesson_id = 0
+        ev = [
             self.recruit_id,
             self.lesson_ld,
             self.small_lesson_id,
@@ -140,6 +146,7 @@ class EncryptShareVideoSaveParams:
             self.format_video_sec(played_time),
             self.uuid + "zhs"
         ]
+        return ev
 
     def get_ev(self, played_time: int, last_submit_time: int, ev_key_name='D26666_KEY'):
         """
@@ -150,7 +157,6 @@ class EncryptShareVideoSaveParams:
         :return: str
         """
         return encrypt_ev(self.set_ev_list(played_time, last_submit_time), get_ev_key(ev_key_name))
-
 
     @staticmethod
     def format_video_sec(sec: int):

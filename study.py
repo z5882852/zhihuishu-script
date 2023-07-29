@@ -100,7 +100,8 @@ class StudyShareCourse:
         # 获取当前视频信息
         self.video_name = f"{self.viewing_video_info.get('chapter_name')}"
         self.video_name += f"-{self.viewing_video_info.get('lesson_name')}"
-        self.video_name += f"-{self.viewing_video_info.get('small_lesson_name')}"
+        if self.viewing_video_info.get("small_lesson_id"):
+            self.video_name += f"-{self.viewing_video_info.get('small_lesson_name')}"
 
         # 判断当前视频是否学习结束
         if self.viewing_video_info.get("watch_state") == 1:
@@ -198,7 +199,26 @@ class StudyShareCourse:
             for video_lesson in video_lessons:
                 lesson_id = video_lesson.get("id")
                 lesson_name = video_lesson.get("name")
-                video_small_lessons = video_lesson.get("videoSmallLessons")
+                video_small_lessons = video_lesson.get("videoSmallLessons", None)
+                if not video_small_lessons:
+                    video_id = video_lesson.get("videoId")
+                    video_sec = video_lesson.get("videoSec")
+                    is_studied_lesson = video_lesson.get("isStudiedLesson")
+                    lesson_info = {
+                        "video_order_number": video_order_number,
+                        "chapter_id": chapter_id,
+                        "chapter_name": chapter_name,
+                        "lesson_id": lesson_id,
+                        "lesson_name": lesson_name,
+                        "small_lesson_id": None,
+                        "small_lesson_name": None,
+                        "video_id": video_id,
+                        "video_sec": video_sec,
+                        "is_studied_lesson": is_studied_lesson,
+                    }
+                    self.lessons.append(lesson_info)
+                    video_order_number += 1
+                    continue
                 for video_small_lesson in video_small_lessons:
                     small_lesson_id = video_small_lesson.get("id")
                     small_lesson_name = video_small_lesson.get("name")
@@ -226,12 +246,28 @@ class StudyShareCourse:
         """查询各个视频的学习进度"""
         query_lessons_ids = []
         query_small_lesson_ids = []
+        # 获取所有视频id
         for lesson in self.lessons:
-            query_lessons_ids.append(lesson.get("lesson_id"))
-            query_small_lesson_ids.append(lesson.get("small_lesson_id"))
+            query_lessons_ids.append(lesson.get("lesson_id")) if lesson.get("lesson_id") else None
+            query_small_lesson_ids.append(lesson.get("small_lesson_id")) if lesson.get("small_lesson_id") else None
+        # 去重
         query_lessons_ids = list(set(query_lessons_ids))
+        query_small_lesson_ids = list(set(query_small_lesson_ids))
+        # 查询视频学习进度
         data = self.ShareCourse.query_study_info(lessonIds=query_lessons_ids, lessonVideoIds=query_small_lesson_ids, recruitId=self.recruit_id)
         self.logger.debug(f"study_info: {data}")
+        # 更新主视频学习进度
+        for lesson_id in data.get("lesson"):
+            study_total_time = data.get("lesson").get(lesson_id).get("studyTotalTime")
+            watch_state = data.get("lesson").get(lesson_id).get("watchState")
+            for i in range(len(self.lessons)):
+                # 判断是否为主视频
+                if self.lessons[i].get("small_lesson_id", None):
+                    continue
+                if self.lessons[i].get("lesson_id") == int(lesson_id):
+                    self.lessons[i]["study_total_time"] = study_total_time
+                    self.lessons[i]["watch_state"] = watch_state
+        # 更新子视频学习进度
         for lv_id in data.get("lv"):
             study_total_time = data.get("lv").get(lv_id).get("studyTotalTime")
             watch_state = data.get("lv").get(lv_id).get("watchState")
@@ -288,10 +324,19 @@ class StudyShareCourse:
 
     def query_current_video_study_finish(self):
         """查询当前视频的学习是否完成"""
-        small_lesson_id = self.viewing_video_info.get("small_lesson_id")
-        data = self.ShareCourse.query_study_info(lessonIds=[], lessonVideoIds=[small_lesson_id], recruitId=self.recruit_id)
+        small_lesson_id = self.viewing_video_info.get("small_lesson_id", None)
+        lesson_id = self.viewing_video_info.get("lesson_id", None)
+        if small_lesson_id:
+            data = self.ShareCourse.query_study_info(lessonIds=[], lessonVideoIds=[small_lesson_id], recruitId=self.recruit_id)
+        else:
+            data = self.ShareCourse.query_study_info(lessonIds=[lesson_id], lessonVideoIds=[], recruitId=self.recruit_id)
         self.logger.debug(f"current_study_info: {data}")
-        return data.get("lv", {}).get(int(small_lesson_id), {}).get("watchState", 0) == 1
+        result = False
+        if small_lesson_id:
+            result = data.get("lv", {}).get(int(small_lesson_id), {}).get("watchState", 0) == 1
+        else:
+            result = data.get("lesson", {}).get(int(lesson_id), {}).get("watchState", 0) == 1
+        return result
 
     def generate_time_point(self, start_time, video_end_time, interval_time=300):
         """
@@ -310,7 +355,10 @@ class StudyShareCourse:
             # 下一个保存点
             point_time = min(last_time + interval_time, video_end_time)
             # 判断下一个保存点之间是否有弹题，有则下一个保存点为弹题时间点
-            for question in self.questions:
+            questions_list = self.questions
+            if questions_list is None:
+                questions_list = []
+            for question in questions_list:
                 question_time = question.get("timeSec")
                 if last_time < question_time < point_time:
                     point_time = question_time

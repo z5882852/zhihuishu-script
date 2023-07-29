@@ -7,8 +7,10 @@ from utils.logger import Logger
 from utils.utils import get_cookies, save_cookies, is_save_cookies
 
 if __name__ == "__main__":
+    # 初始化日志模块
     logger = Logger()
     logger.info("################脚本开始运行################")
+    # 初始化session
     session = requests.Session()
     if is_save_cookies():
         session.cookies = get_cookies()
@@ -43,8 +45,7 @@ if __name__ == "__main__":
             index += 1
         try:
             input_str = input("请输入序号(输入`quit`退出)：")
-            if input_str == "quit":
-                # 退出
+            if input_str in ("quit", "exit", "退出"):
                 break
             index = int(input_str)
             if index > len(share_sourses) or index < 1:
@@ -60,6 +61,7 @@ if __name__ == "__main__":
             print("输入错误，请重新输入")
         except KeyboardInterrupt:
             print("已停止")
+            break
 
     if is_save_cookies():
         # 保存cookies
