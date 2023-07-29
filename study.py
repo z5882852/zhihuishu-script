@@ -145,6 +145,9 @@ class StudyShareCourse:
                     self.pass_questions(questions_id=question_id)
                 # 请求获取视频数据
                 pre_learning_note_data = self.get_studied_lesson_dto()
+                # 判断是否需要推理验证
+                if pre_learning_note_data.get("isSlide", False):
+                    input("需要安全验证，请在网页或APP中手动验证后按回车继续...")
                 # 获取studied_lesson_dto_id用于生成token_id
                 self.studied_lesson_dto_id = pre_learning_note_data.get("studiedLessonDto", {}).get("id", None)
                 # 该视频已学习的时间
@@ -160,7 +163,7 @@ class StudyShareCourse:
                     break
         # 验证视频是否学习完成
         if self.query_current_video_study_finish():
-            self.logger.info(f"{self.video_name} 学习完成")
+            self.logger.debug(f"{self.video_name} 学习完成")
         else:
             self.logger.warning(f"{self.video_name} 学习失败")
 
@@ -331,11 +334,10 @@ class StudyShareCourse:
         else:
             data = self.ShareCourse.query_study_info(lessonIds=[lesson_id], lessonVideoIds=[], recruitId=self.recruit_id)
         self.logger.debug(f"current_study_info: {data}")
-        result = False
         if small_lesson_id:
-            result = data.get("lv", {}).get(int(small_lesson_id), {}).get("watchState", 0) == 1
+            result = data.get("lv", {}).get(str(small_lesson_id), {}).get("watchState", 0) == 1
         else:
-            result = data.get("lesson", {}).get(int(lesson_id), {}).get("watchState", 0) == 1
+            result = data.get("lesson", {}).get(str(lesson_id), {}).get("watchState", 0) == 1
         return result
 
     def generate_time_point(self, start_time, video_end_time, interval_time=300):
