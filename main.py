@@ -7,7 +7,7 @@ from utils.utils import get_cookies, save_cookies
 
 session = requests.Session()
 logger = Logger()
-logger.info("脚本开始运行")
+logger.info("################脚本开始运行################")
 session.cookies = requests.utils.cookiejar_from_dict(get_cookies())
 UH = UserHandler(session)
 if not UH.get_user_info():
@@ -21,7 +21,7 @@ if not UH.get_user_info():
         exit()
 logger.info("验证身份成功")
 
-SSC = StudyShareCourse(recruit_and_course_id="4b505d5847594859454a58595f475e475f", session=session, logger=logger)
+SSC = StudyShareCourse(recruit_and_course_id="4b505d5847594859454a58595f475e475f", session=session, logger=logger, speed=10)
 SSC.start()
 
 save_cookies(session)

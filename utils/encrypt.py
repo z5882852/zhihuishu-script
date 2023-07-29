@@ -58,6 +58,10 @@ def encrypt_params(params, key_name):
     return AES_CBC_encrypt(key=get_AES_keys(key_name), iv=get_config().get('encrypt', 'AES_IV'), text=params)
 
 
+def get_token_id(studied_lesson_dto_id):
+    return base64.b64encode(str(studied_lesson_dto_id).encode()).decode()
+
+
 def encrypt_ev(data: list, key: str):
     """
     获取ev参数
@@ -65,6 +69,7 @@ def encrypt_ev(data: list, key: str):
     :param key: 密钥
     :return: str
     """
+
     def y(_t):
         e_2 = str(hex(_t))[2:]
         if len(e_2) < 2:
@@ -107,7 +112,7 @@ class EncryptShareVideoSaveParams:
         s = self.video_sec % 60
         return f"{h:02}:{m:02}:{s:02}"
 
-    def set_ev_list(self, played_time, last_submit_time):
+    def set_ev_list(self, played_time: int, last_submit_time: int):
         return [
             self.recruit_id,
             self.lesson_ld,
@@ -120,13 +125,20 @@ class EncryptShareVideoSaveParams:
             self.format_video_sec(),
         ]
 
-    def get_ev(self, played_time, last_submit_time, ev_key_name='D26666_KEY'):
+    def get_ev(self, played_time: int, last_submit_time: int, ev_key_name='D26666_KEY'):
+        """
+        获取ev参数
+        :param played_time: int 当前保存的时间点
+        :param last_submit_time: int 上次保存的时间
+        :param ev_key_name: 密钥名
+        :return: str
+        """
         return encrypt_ev(self.set_ev_list(played_time, last_submit_time), get_ev_key(ev_key_name))
 
     @staticmethod
     def gen_watch_point(start_time, end_time=300):
         """
-        生成watchPoint（提交共享学分课视频进度接口用）
+        生成watch_point
         :param start_time: 起始视频进度条时间，秒
         :param end_time: 提交时距离起始时间的间隔，秒。默认为正常观看时请求database接口的间隔时间
         """
@@ -148,7 +160,4 @@ class EncryptShareVideoSaveParams:
                 watch_point += str(t)
         return watch_point
 
-    @staticmethod
-    def get_token_id(studied_lesson_dto_id):
-        return base64.b64encode(str(studied_lesson_dto_id).encode()).decode()
 
