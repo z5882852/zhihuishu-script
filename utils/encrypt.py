@@ -70,26 +70,51 @@ def encrypt_ev(data: list, key: str):
     :return: str
     """
 
-    def y(_t):
-        e_2 = str(hex(_t))[2:]
-        if len(e_2) < 2:
-            return '0' + e_2
-        else:
-            return e_2
+    def gen():
+        while True:
+            for char in key:
+                yield ord(char)
 
-    e = ''
-    for j in data:
-        e += str(j) + ';'
-    e = e[0:len(e) - 1]
-    e_1 = ''
-    for i in range(len(e)):
-        n = ord(e[i]) ^ ord(key[i % len(key)])
-        e_1 += y(n)
-    return e_1
+    gen = gen()
+    data = ';'.join(map(str, data))
+    ev = ""
+    for c in data:
+        tmp = hex(ord(c) ^ next(gen)).replace("0x", "")
+        if len(tmp) < 2:
+            tmp = '0' + tmp
+        ev += tmp[-4:]  # actually -2 is fine, but their sauce code said -4
+    return ev
+
+
+def gen_watch_point(start_time, end_time):
+    """
+    生成watchPoint（提交共享学分课视频进度接口用）
+    :param start_time: 起始视频进度条时间，秒
+    :param end_time: 提交时间
+    """
+    record_interval = 1990
+    total_study_time_interval = 4990
+    cache_interval = 180000
+    database_interval = 300000
+    watch_point = None
+    total_stydy_time = start_time
+    i_time = end_time - start_time
+    for i in range(1, int(i_time * 1000) + 1):
+        if i % total_study_time_interval == 0:
+            total_stydy_time += 5
+        if i % record_interval == 0 and i >= record_interval:
+            t = int(total_stydy_time / 5) + 2
+            if watch_point is None:
+                watch_point = '0,1,'
+            else:
+                watch_point += ','
+            watch_point += str(t)
+    return watch_point
 
 
 class EncryptShareVideoSaveParams:
-    def __init__(self, recruit_and_course_id, recruit_id, lesson_ld, small_lesson_id, video_id, chapte_id, video_sec):
+    def __init__(self, recruit_and_course_id, recruit_id, lesson_ld, small_lesson_id, video_id, chapter_id, video_sec,
+                 uuid):
         """
         构建共享学分课视频查看进度的加密参数类
         """
@@ -98,19 +123,9 @@ class EncryptShareVideoSaveParams:
         self.lesson_ld = lesson_ld
         self.small_lesson_id = small_lesson_id
         self.video_id = video_id
-        self.chapte_id = chapte_id
+        self.chapter_id = chapter_id
         self.video_sec = video_sec
-
-    def format_video_sec(self):
-        """
-        格式化视频秒数
-        将视频秒数转换为例如"00:00:00"的格式
-        :return: str
-        """
-        h = self.video_sec // 3600
-        m = self.video_sec % 3600 // 60
-        s = self.video_sec % 60
-        return f"{h:02}:{m:02}:{s:02}"
+        self.uuid = uuid
 
     def set_ev_list(self, played_time: int, last_submit_time: int):
         return [
@@ -118,11 +133,12 @@ class EncryptShareVideoSaveParams:
             self.lesson_ld,
             self.small_lesson_id,
             self.video_id,
-            self.chapte_id,
+            self.chapter_id,
             '0',
             int(played_time - last_submit_time),
-            played_time,
-            self.format_video_sec(),
+            int(played_time),
+            self.format_video_sec(played_time),
+            self.uuid + "zhs"
         ]
 
     def get_ev(self, played_time: int, last_submit_time: int, ev_key_name='D26666_KEY'):
@@ -135,29 +151,15 @@ class EncryptShareVideoSaveParams:
         """
         return encrypt_ev(self.set_ev_list(played_time, last_submit_time), get_ev_key(ev_key_name))
 
+
     @staticmethod
-    def gen_watch_point(start_time, end_time=300):
+    def format_video_sec(sec: int):
         """
-        生成watch_point
-        :param start_time: 起始视频进度条时间，秒
-        :param end_time: 提交时距离起始时间的间隔，秒。默认为正常观看时请求database接口的间隔时间
+        格式化视频秒数
+        将视频秒数转换为例如"00:00:00"的格式
+        :return: str
         """
-        record_interval = 1990
-        total_study_time_interval = 4990
-        # cache_interval = 180000
-        # database_interval = 300000
-        watch_point = None
-        total_stydy_time = start_time
-        for i in range(int(end_time * 1000)):
-            if i % total_study_time_interval == 0:
-                total_stydy_time += 5
-            if i % record_interval == 0 and i >= record_interval:
-                t = int(total_stydy_time / 5) + 2
-                if watch_point is None:
-                    watch_point = '0,1,'
-                else:
-                    watch_point += ','
-                watch_point += str(t)
-        return watch_point
-
-
+        h = sec // 3600
+        m = sec % 3600 // 60
+        s = sec % 60
+        return f"{h:02}:{m:02}:{s:02}"

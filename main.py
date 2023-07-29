@@ -21,7 +21,7 @@ if not UH.get_user_info():
         exit()
 logger.info("验证身份成功")
 
-SSC = StudyShareCourse(recruit_and_course_id="4b505d5847594859454a58595f475e475f", session=session, logger=logger, speed=10)
+SSC = StudyShareCourse(recruit_and_course_id="4b505d5847594859454a58595f475e475f", session=session, logger=logger, speed=1)
 SSC.start()
 
 save_cookies(session)

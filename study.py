@@ -1,7 +1,11 @@
+import json
 import time
+from urllib.parse import unquote
+
+import requests
 
 from course import ShareCourse
-from utils.encrypt import EncryptShareVideoSaveParams, get_token_id
+from utils.encrypt import EncryptShareVideoSaveParams, get_token_id, gen_watch_point
 from utils.logger import Logger
 from utils.utils import get_error_retry
 
@@ -28,6 +32,7 @@ class StudyShareCourse:
         self.session = session
         self.ShareCourse = ShareCourse(session)
         self.logger = logger
+        self.uuid = None
         self.finish = False
         self.finish_message = None
 
@@ -48,6 +53,9 @@ class StudyShareCourse:
 
 
     def init(self):
+        # 获取用户uuid
+        self.get_uuid()
+        self.logger.debug(f"uuid: {self.uuid}")
         # 获取cookies
         self.ShareCourse.go_login(f"https://studyh5.zhihuishu.com/videoStudy.html#/studyVideo?recruitAndCourseId={self.recruit_and_course_id}")
         # 查询课程信息
@@ -95,17 +103,18 @@ class StudyShareCourse:
         # 结束时间
         end_time = self.viewing_video_info.get('video_sec')
         # 生成保存时间点
-        time_points = self.generate_time_point(start_time, end_time, 300)
+        time_points = self.generate_time_point(start_time, end_time, 60)
 
         point_index = 0
         local_total_time = start_time
         err_num = 1
         while True:
-            time.sleep(1)
+            # time.sleep(1)
             local_total_time += self.speed
             time_point_info = time_points[point_index]
             time_point = time_point_info.get("time")
             question_id = time_point_info.get("question_id", None)
+            print(f"剩余{time_point - local_total_time}")
             # 判断是否达到保存点
             if time_point > local_total_time:
                 continue
@@ -118,17 +127,28 @@ class StudyShareCourse:
                 # studied_lesson_dto_id由于生成token_id
                 self.studied_lesson_dto_id = pre_learning_note_data.get("studiedLessonDto", {}).get("id", None)
                 # 该视频已学习的时间
-                learn_time = pre_learning_note_data.get("studiedLessonDto", {}).get("learnTimeSec", None)
-                if not self.save_study(time_point, learn_time):
+                study_total_time = pre_learning_note_data.get("studiedLessonDto", {}).get("studyTotalTime", None)
+                if not self.save_study(time_point, study_total_time):
                     Exception("无法保存学习进度!")
                 point_index += 1
             except Exception as e:
-                print(e)
-                self.logger.warning(e)
+                print(f"保存学习进度发生错误: {e}")
+                self.logger.warning(f"保存学习进度发生错误: {e}")
                 err_num += 1
                 if err_num >= get_error_retry():
                     return
 
+    def get_uuid(self):
+        cookies = requests.utils.dict_from_cookiejar(self.session.cookies)
+        if not ("CASLOGC" in cookies):
+            return
+        user_info = cookies.get("CASLOGC", None)
+        try:
+            self.uuid = json.loads(unquote(user_info)).get("uuid", None)
+            if not self.uuid:
+                self.logger.info("获取UUID失败")
+        except Exception as e:
+            self.logger.warning(e)
 
     def query_course_info(self):
         """查询课程信息"""
@@ -233,7 +253,7 @@ class StudyShareCourse:
     def save_study(self, save_time, last_time):
         encrypt_params = self.init_encrypt_params_class()
         data = self.ShareCourse.save_database_interval_time_v2(
-            ewssw=encrypt_params.gen_watch_point(save_time, int(save_time-last_time)),
+            ewssw=gen_watch_point(last_time, save_time),
             sdsew=encrypt_params.get_ev(save_time, last_time),
             zwsds=get_token_id(studied_lesson_dto_id=self.studied_lesson_dto_id),
             courseId=self.course_id
@@ -266,7 +286,7 @@ class StudyShareCourse:
             # 判断下一个保存点之间是否有弹题，有则下一个保存点为弹题时间点
             for question in self.questions:
                 question_time = question.get("timeSec")
-                if start_time < question_time <= point_time:
+                if last_time < question_time < point_time:
                     point_time = question_time
                     time_points.append({
                         "time": point_time,
@@ -295,8 +315,9 @@ class StudyShareCourse:
             lesson_ld=self.viewing_video_info.get("lesson_id"),
             small_lesson_id=self.viewing_video_info.get("small_lesson_id"),
             video_id=self.viewing_video_info.get("video_id"),
-            chapte_id=self.viewing_video_info.get("chapte_id"),
+            chapter_id=self.viewing_video_info.get("chapter_id"),
             video_sec=self.viewing_video_info.get("video_sec"),
+            uuid=self.uuid
         )
         return encrypt
 

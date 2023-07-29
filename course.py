@@ -590,9 +590,8 @@ class ShareCourse:
         }
         response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-
-            raise Exception(f"提交视频学习进度失败，status_code: {response.status_code}")
+            raise Exception(f"提交视频学习进度失败，status_code: {response.status_code}, response: {response.text}")
         data = response.json()
         if data.get("code", -1) != 0:
-            raise Exception(f"提交视频学习进度失败，response_code: {data.get('code', -1)}")
+            raise Exception(f"提交视频学习进度失败，response_code: {data.get('code', -1)}, response: {response.text}")
         return data.get("data", None)
