@@ -12,8 +12,9 @@ from utils.logger import Logger
 
 
 class QueryCourse:
-    def __init__(self, session):
+    def __init__(self, session, logger):
         self.session = session
+        self.logger = logger
         self.uuid = None
         self.headers = {}
         self.__headers()

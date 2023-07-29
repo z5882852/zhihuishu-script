@@ -34,7 +34,6 @@ class StudyShareCourse:
         self.logger = logger
         self.uuid = None
         self.finish = False
-        self.finish_message = None
 
     def start(self):
         error_num = 0
@@ -47,9 +46,8 @@ class StudyShareCourse:
                 break
             except Exception as e:
                 error_num += 1
-                print(e)
+                print(f"发生错误: {e}")
                 self.logger.warning(e)
-                self.finish_message = "错误"
 
 
     def init(self):
@@ -70,32 +68,48 @@ class StudyShareCourse:
         # 查询各个视频学习进度
         self.query_study_info()
         self.logger.info("查询视频学习进度成功!")
-        # 获取上次观看视频的信息
-        self.get_last_view_video_id()
-        self.logger.info("获取上次观看视频的信息成功!")
-        self.logger.debug(f"self.viewing_video_info: {self.viewing_video_info}")
-
-        self.study_lesson()
+        while True:
+            print(
+                "1. 从头开始学习"
+                "\n2. 从上次观看视频开始学习"
+            )
+            mode = input("请选择学习模式：")
+            if mode == "1":
+                # 从头开始学习
+                self.viewing_video_info = self.lessons[0]
+                break
+            elif mode == "2":
+                # 获取上次观看视频的信息
+                self.get_last_view_video_id()
+                self.logger.info("获取上次观看视频的信息成功!")
+                self.logger.debug(f"self.viewing_video_info: {self.viewing_video_info}")
+                break
+            else:
+                print("输入错误，请重新输入")
 
     def study(self):
-        self.study_lesson()
+        while not self.finish:
+            # 学习该课视频
+            self.study_lesson()
+            # 切换下一个视频
+            self.next_video()
+        self.logger.debug(f"课程 {self.course_name} 学习完成")
+        print(f"课程 {self.course_name} 学习完成")
 
     def study_lesson(self):
-        # 获取弹题数据
-        self.get_questions()
-        self.logger.info("获取弹题数据成功!")
-        self.logger.debug(f"self.questions: {self.questions}")
-
         # 获取当前视频信息
         self.video_name = f"{self.viewing_video_info.get('chapter_name')}"
         self.video_name += f"-{self.viewing_video_info.get('lesson_name')}"
         self.video_name += f"-{self.viewing_video_info.get('small_lesson_name')}"
-        pre_learning_note = self.get_studied_lesson_dto()
 
         # 判断当前视频是否学习结束
         if self.viewing_video_info.get("watch_state") == 1:
             self.logger.info(f"{self.video_name}学习进度已满")
             return
+
+        # 获取弹题数据
+        self.get_questions()
+        self.logger.debug(f"获取弹题数据成功, self.questions: {self.questions}")
 
         # 创建保存时间点
         # 开始时间
@@ -103,28 +117,34 @@ class StudyShareCourse:
         # 结束时间
         end_time = self.viewing_video_info.get('video_sec')
         # 生成保存时间点
-        time_points = self.generate_time_point(start_time, end_time, 60)
+        time_points = self.generate_time_point(start_time, end_time, 300)
 
         point_index = 0
         local_total_time = start_time
         err_num = 1
+
+        print(f"开始学习视频: {self.video_name}")
         while True:
             # time.sleep(1)
+            # 检测是否为最后一个保存点
+            if point_index >= len(time_points):
+                break
+            # 初始化
             local_total_time += self.speed
             time_point_info = time_points[point_index]
             time_point = time_point_info.get("time")
             question_id = time_point_info.get("question_id", None)
-            print(f"剩余{time_point - local_total_time}")
             # 判断是否达到保存点
             if time_point > local_total_time:
                 continue
             try:
+                # 判断是否有弹题
                 if question_id:
-                    self.logger.info("正在自动提交弹题")
+                    self.logger.debug(f"自动提交弹题, question_id: {question_id}")
                     self.pass_questions(questions_id=question_id)
                 # 请求获取视频数据
                 pre_learning_note_data = self.get_studied_lesson_dto()
-                # studied_lesson_dto_id由于生成token_id
+                # 获取studied_lesson_dto_id用于生成token_id
                 self.studied_lesson_dto_id = pre_learning_note_data.get("studiedLessonDto", {}).get("id", None)
                 # 该视频已学习的时间
                 study_total_time = pre_learning_note_data.get("studiedLessonDto", {}).get("studyTotalTime", None)
@@ -136,7 +156,12 @@ class StudyShareCourse:
                 self.logger.warning(f"保存学习进度发生错误: {e}")
                 err_num += 1
                 if err_num >= get_error_retry():
-                    return
+                    break
+        # 验证视频是否学习完成
+        if self.query_current_video_study_finish():
+            self.logger.info(f"{self.video_name} 学习完成")
+        else:
+            self.logger.warning(f"{self.video_name} 学习失败")
 
     def get_uuid(self):
         cookies = requests.utils.dict_from_cookiejar(self.session.cookies)
@@ -163,6 +188,7 @@ class StudyShareCourse:
     def get_video_list(self):
         """获取课程所有视频信息并构建成列表"""
         data = self.ShareCourse.get_video_list(self.recruit_and_course_id)
+        self.logger.debug(f"response_video_list: {data}")
         video_chapter_dtos = data.get("videoChapterDtos")
         video_order_number = 1
         for video_chapter_dto in video_chapter_dtos:
@@ -265,7 +291,7 @@ class StudyShareCourse:
         small_lesson_id = self.viewing_video_info.get("small_lesson_id")
         data = self.ShareCourse.query_study_info(lessonIds=[], lessonVideoIds=[small_lesson_id], recruitId=self.recruit_id)
         self.logger.debug(f"current_study_info: {data}")
-        return data.get("lv").get(int(small_lesson_id)).get("watchState") == 1
+        return data.get("lv", {}).get(int(small_lesson_id), {}).get("watchState", 0) == 1
 
     def generate_time_point(self, start_time, video_end_time, interval_time=300):
         """
@@ -363,6 +389,7 @@ class StudyShareCourse:
         next_video_info = None
         next_video_order_number = self.viewing_video_info.get("video_order_number") + 1
         if len(self.lessons) == next_video_order_number:
+            self.finish = True
             return False
         for lesson in self.lessons:
             if lesson.get("video_order_number") == next_video_order_number:
