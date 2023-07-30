@@ -1,8 +1,8 @@
 import requests
 
-from auth import UserHandler
-from course import QueryCourse
-from study import StudyShareCourse
+from zhihuishu.auth import UserHandler
+from zhihuishu.course import QueryCourse
+from zhihuishu.study import StudyShareCourse
 from utils.logger import Logger
 from utils.utils import get_cookies, save_cookies, is_save_cookies
 

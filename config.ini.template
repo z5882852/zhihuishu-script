@@ -3,6 +3,7 @@ username =
 password =
 
 [settings]
+save_cookies = true
 error_retry = 3
 enable_log = true
 enable_log_level = debug,info,warning,error,critical
@@ -10,6 +11,7 @@ print_info_level = true
 
 [data]
 cookies_path = data/cookies.json
+tasks_path = data/tasks.json
 log_folder = log/
 
 # 以下内容一般为常量，不了解不要修改

@@ -126,13 +126,16 @@ class UserHandler:
             return False, response
         return True, response
 
-    def login(self):
+    def login(self, username, password):
         """
-        登录，成功则返回cookies
-        :return: cookies
+        账号密码登录
+        :param username: 用户名
+        :param password: 密码
+        :return: 是否成功, 消息
         """
-        username = self.user.get("username", "username")
-        password = self.user.get("password", "password")
+        if username is None or password is None:
+            username = self.user.get("username", "username")
+            password = self.user.get("password", "password")
         success, msg = self.validate_account_password(username, password)
         if not success:
             return success, msg
@@ -158,7 +161,6 @@ class UserHandler:
         if not self.get_user_info():
             return False, "登录失败, 无法验证身份"
         return True, "登录成功"
-
 
     def save_cookies(self):
         """保存cookies至本地"""

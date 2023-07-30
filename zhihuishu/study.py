@@ -1,12 +1,10 @@
 import json
-import time
 from urllib.parse import unquote
 
 import requests
 
-from course import ShareCourse
+from zhihuishu.course import ShareCourse
 from utils.encrypt import EncryptShareVideoSaveParams, get_token_id, gen_watch_point
-from utils.logger import Logger
 from utils.utils import get_error_retry
 
 
