@@ -103,6 +103,46 @@
         <string>设置</string>
        </property>
       </widget>
+      <widget class="QLabel" name="userImg_label">
+       <property name="geometry">
+        <rect>
+         <x>22</x>
+         <y>450</y>
+         <width>75</width>
+         <height>75</height>
+        </rect>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QLabel" name="username_label">
+       <property name="geometry">
+        <rect>
+         <x>22</x>
+         <y>530</y>
+         <width>75</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>未登录</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
      </widget>
     </item>
     <item>
@@ -764,6 +804,9 @@
             <property name="text">
              <string>暴力模式</string>
             </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
            </widget>
           </item>
           <item>
@@ -1015,7 +1058,7 @@ p, li { white-space: pre-wrap; }
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="">
+        <widget class="QWidget" name="layoutWidget">
          <property name="geometry">
           <rect>
            <x>40</x>
@@ -1087,13 +1130,13 @@ p, li { white-space: pre-wrap; }
         </widget>
        </widget>
        <widget class="QWidget" name="setting_page">
-        <widget class="QTableWidget" name="tableWidget">
+        <widget class="QTableWidget" name="setting_table">
          <property name="geometry">
           <rect>
            <x>10</x>
            <y>10</y>
            <width>650</width>
-           <height>581</height>
+           <height>541</height>
           </rect>
          </property>
          <column>
@@ -1111,6 +1154,44 @@ p, li { white-space: pre-wrap; }
            <string>描述</string>
           </property>
          </column>
+        </widget>
+        <widget class="QWidget" name="layoutWidget_9">
+         <property name="geometry">
+          <rect>
+           <x>40</x>
+           <y>560</y>
+           <width>591</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_15">
+          <item>
+           <widget class="QPushButton" name="ResetSetting_Button">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>重载</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="SaveSetting_Button">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>保存</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </widget>
       </widget>

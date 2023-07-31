@@ -4,6 +4,8 @@ import os
 
 from requests.cookies import RequestsCookieJar, create_cookie
 
+from utils.config import get_cookies_path, get_description_path, get_user
+
 
 def merge_dict(dict_1: dict, dict_2: dict):
     dict_3 = {}
@@ -48,12 +50,6 @@ def append_cookies(username, cookies):
     new_cookies = read_json_file(cookies_path)
     new_cookies[username] = cookies
     write_json_file(new_cookies, cookies_path)
-
-
-def get_config():
-    config = configparser.ConfigParser()
-    config.read('config.ini', encoding='utf-8')
-    return config
 
 
 def save_cookies(session):
@@ -108,25 +104,6 @@ def list_to_cookie_jar(cookies_list: list[dict]):
     return cookie_jar
 
 
-def get_user():
-    return {
-        "username": get_config().get('user', 'username'),
-        "password": get_config().get('user', 'password'),
-    }
-
-
-def is_save_cookies():
-    return get_config().get('settings', 'save_cookies')
-
-
-def get_log_folder():
-    return get_config().get('data', 'log_folder')
-
-
-def get_cookies_path():
-    return get_config().get('data', 'cookies_path')
-
-
 def get_cookies():
     return read_cookies(get_user().get("username"))
 
@@ -135,19 +112,8 @@ def set_cookies(cookies):
     append_cookies(get_user().get("username"), cookies)
 
 
-def get_error_retry():
-    return int(get_config().get('settings', 'error_retry'))
-
-
-def enable_log():
-    return get_config().get('settings', 'enable_log') == "true"
-
-
-def enable_log_level():
-    return get_config().get('settings', 'enable_log_level').split(",")
-
-
-def print_info_level():
-    return get_config().get('settings', 'print_info_level') == "true"
-
-
+def read_description():
+    description_path = get_description_path()
+    if not is_file_exists(description_path):
+        write_json_file({}, description_path)
+    return read_json_file(description_path)

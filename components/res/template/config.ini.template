@@ -4,12 +4,13 @@ password =
 
 [settings]
 save_cookies = true
-error_retry = 3
+error_retry = 1
 enable_log = true
 enable_log_level = debug,info,warning,error,critical
 print_info_level = true
 
 [data]
+description_path = data/description.json
 cookies_path = data/cookies.json
 tasks_path = data/tasks.json
 log_folder = log/

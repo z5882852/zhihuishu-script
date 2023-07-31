@@ -1,10 +1,11 @@
 import requests
 
+from utils.config import is_save_cookies
 from zhihuishu.auth import UserHandler
 from zhihuishu.course import QueryCourse
 from zhihuishu.study import StudyShareCourse
 from utils.logger import Logger
-from utils.utils import get_cookies, save_cookies, is_save_cookies
+from utils.utils import get_cookies, save_cookies
 
 if __name__ == "__main__":
     # 初始化日志模块

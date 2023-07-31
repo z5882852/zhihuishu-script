@@ -1,14 +1,17 @@
 import ctypes
+import os
 
 import requests
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
+from PyQt5.QtCore import QThreadPool
 from PyQt5.QtWidgets import QMessageBox, QInputDialog, QLineEdit
 
+from utils.config import is_save_cookies, get_settings_config, get_data_config, get_config
 from utils.logger import Logger
 from utils.path import ICON_PATH
-from utils.utils import get_cookies, save_cookies, is_save_cookies
+from utils.utils import get_cookies, save_cookies, read_description
 from components.main_ui import Ui_MainGUI
 from zhihuishu.auth import UserHandler
 
@@ -32,18 +35,19 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.SettingPage_Button.clicked.connect(self.show_setting_page)
         self.ResetTask_Button.clicked.connect(self.reset_task_page)
         self.CreateTask_Button.clicked.connect(self.create_task)
+        self.ResetSetting_Button.clicked.connect(self.reset_setting)
+        self.SaveSetting_Button.clicked.connect(self.save_setting)
         # 绑定暴力模式选中事件
         self.violent_checkBox.stateChanged.connect(self.toggle_speed)
 
         # 初始化
+        self.threadpool = QThreadPool()
         self.logger = logger_instance
         self.isLogining = False
         self.isLogin = False
         self.session = None
         self.UserAuth = None
         self.init()
-
-
 
 
     def init(self):
@@ -67,8 +71,9 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
             self.session.cookies = requests.utils.cookiejar_from_dict({})
             return None
         # 验证身份成功
-        self.logger.debug("user_info: %s" % self.UserAuth.user_data)
+        self.username_label.setText(self.UserAuth.user_data.get("realName", "未知用户名"))
         self.logger.info("验证身份成功")
+        self.logger.debug("user_info: %s" % self.UserAuth.user_data)
         self.isLogin = True
         self.show_create_task_page()
 
@@ -77,7 +82,6 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
             return None
         self.stackedWidget_content.setCurrentIndex(0)
         self.stackedWidget_login.setCurrentIndex(0)
-        print("show_login_page")
 
     def show_create_task_page(self):
         if self.stackedWidget_content.currentIndex() == 1:
@@ -94,6 +98,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         if self.stackedWidget_content.currentIndex() == 3:
             return None
         self.stackedWidget_content.setCurrentIndex(3)
+        self.load_settings()
 
     def show_qrcode_page(self):
         if self.stackedWidget_login.currentIndex() == 1:
@@ -104,6 +109,42 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         if self.stackedWidget_login.currentIndex() == 0:
             return None
         self.stackedWidget_login.setCurrentIndex(0)
+
+    def load_settings(self):
+        """加载配置"""
+        _translate = QtCore.QCoreApplication.translate
+        setting = get_settings_config()
+        settings_description = read_description().get("settings")
+        self.setting_table.setRowCount(len(setting))
+        for i in range(len(setting)):
+            key, value = setting[i]
+            description = settings_description.get(key, "无")
+
+            item = QtWidgets.QTableWidgetItem()
+            self.setting_table.setVerticalHeaderItem(i, item)
+            item = self.setting_table.verticalHeaderItem(i)
+            if item is not None:
+                item.setText(_translate("MainGUI", str(i + 1)))
+
+            item = QtWidgets.QTableWidgetItem()
+            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.setting_table.setItem(i, 0, item)
+            item = self.setting_table.item(i, 0)
+            if item is not None:
+                item.setText(_translate("MainGUI", key))
+
+            item = QtWidgets.QTableWidgetItem()
+            self.setting_table.setItem(i, 1, item)
+            item = self.setting_table.item(i, 1)
+            if item is not None:
+                item.setText(_translate("MainGUI", value))
+
+            item = QtWidgets.QTableWidgetItem()
+            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.setting_table.setItem(i, 2, item)
+            item = self.setting_table.item(i, 2)
+            if item is not None:
+                item.setText(_translate("MainGUI", description))
 
     def password_login(self):
         """密码登录"""
@@ -181,6 +222,33 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
             self.speed_doubleSpinBox.setEnabled(False)
         else:
             self.speed_doubleSpinBox.setEnabled(True)
+
+    def reset_setting(self):
+        """重置设置"""
+        self.logger.debug("重置设置")
+        self.load_settings()
+
+    def save_setting(self):
+        """保存设置"""
+        # 获取setting_table的所有行
+        items = self.setting_table.findItems("", QtCore.Qt.MatchContains)
+        # 将行转换为字典
+        settings = {}
+        for item in items:
+            row = item.row()
+            key = self.setting_table.item(row, 0).text()
+            value = self.setting_table.item(row, 1).text()
+            settings[key] = value
+        self.logger.debug(f"setting: \n{settings}")
+        # 遍历setting
+        config = get_config()
+        for key, value in settings.items():
+            print(key, value)
+            config.set(section="settings", option=key, value=value)
+        # 保存配置文件
+        config.write(open("config.ini", "w"))
+        QMessageBox.information(self, "提示", "设置已保存，部分设置重启生效", QMessageBox.Ok)
+
 
 
 if __name__ == "__main__":

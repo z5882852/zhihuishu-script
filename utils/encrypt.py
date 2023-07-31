@@ -3,7 +3,7 @@ import json
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-from utils.utils import get_config
+from utils.config import get_config
 
 # 2.js 登录   key: 7q9oko0vqb3la20r
 # 4.js 视频   key: azp53h0kft7qi78q

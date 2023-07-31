@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-from utils.utils import get_log_folder, enable_log_level, enable_log, print_info_level
+from utils.config import get_log_folder, enable_log_level, enable_log, print_info_level
 
 
 def setup_logger(logfile, log_level=logging.DEBUG):

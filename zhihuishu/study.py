@@ -3,9 +3,10 @@ from urllib.parse import unquote
 
 import requests
 
+from utils.config import get_error_retry
 from zhihuishu.course import ShareCourse
 from utils.encrypt import EncryptShareVideoSaveParams, get_token_id, gen_watch_point
-from utils.utils import get_error_retry
+
 
 
 class StudyShareCourse:
