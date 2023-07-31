@@ -38,7 +38,9 @@ class Logger:
         if enable_log and "debug" in self.enable_level:
             self.logger.debug(message)
 
-    def info(self, message):
+    def info(self, message, print_to_log=False, call_back=None):
+        if print_to_log and call_back is not None:
+            call_back(message)
         if self.print_info_level:
             print(message)
         if enable_log and "info" in self.enable_level:
