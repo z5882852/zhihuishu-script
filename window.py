@@ -1,11 +1,14 @@
+import asyncio
+import base64
 import ctypes
 import os
+import time
 
 import requests
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
-from PyQt5.QtCore import QThreadPool
+from PyQt5.QtCore import QThreadPool, pyqtSignal, QThread
 from PyQt5.QtWidgets import QMessageBox, QInputDialog, QLineEdit
 
 from utils.config import is_save_cookies, get_settings_config, get_data_config, get_config
@@ -95,6 +98,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
 
     def show_user_info(self):
         """显示用户信息"""
+        self.logger.debug("user_info: %s" % self.UserAuth.user_data)
         self.username_label.setText(self.UserAuth.user_data.get("realName", "未知用户名"))
         img_url = self.UserAuth.user_data.get("headPicUrl", "")
         try:
@@ -142,6 +146,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         if self.stackedWidget_login.currentIndex() == 1:
             return None
         self.stackedWidget_login.setCurrentIndex(1)
+        self.refresh_qrcode()
 
     def show_password_page(self):
         if self.stackedWidget_login.currentIndex() == 0:
@@ -208,7 +213,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         if is_save_cookies():
             # 保存cookies
             save_cookies(self.session)
-            self.logger.debug("cookies已保存")
+            self.logger.info("cookies已保存")
             self.logger.debug("cookies: \n%s" % get_cookies())
         self.isLogin = True
         self.login_Button.setDisabled(False)
@@ -217,7 +222,39 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.show_create_task_page()
 
     def refresh_qrcode(self):
-        pass
+        def handle_info_message(success, message):
+            self.isLogin = success
+            QMessageBox.information(self, "提示", message, QMessageBox.Ok)
+
+        def handle_qr_code_image(data):
+            image = QtGui.QPixmap()
+            image.loadFromData(data)
+            scaled_image = image.scaled(100, 100, aspectRatioMode=QtCore.Qt.KeepAspectRatio)
+            self.qrcode_img_label.setPixmap(scaled_image)
+            self.qrcode_img_label.setScaledContents(True)
+
+        def handle_qr_code_info(message):
+            self.QRCodeInfo_label.setText(message)
+
+        # 开启线程
+        self.refresh_thread = RefreshQRCodeThread(self.UserAuth, logger=self.logger, isLogin=self.isLogin)
+        self.refresh_thread.info_message.connect(handle_info_message)
+        self.refresh_thread.qr_code_image.connect(handle_qr_code_image)
+        self.refresh_thread.finished.connect(self.handle_qr_code_validation)
+        self.refresh_thread.show_info.connect(handle_qr_code_info)
+
+        self.refresh_thread.start()
+
+    def handle_qr_code_validation(self, is_login):
+        if not is_login:
+            return None
+        if is_save_cookies():
+            # 保存cookies
+            save_cookies(self.session)
+            self.logger.info("cookies已保存")
+            self.logger.debug("cookies: \n%s" % get_cookies())
+        self.show_create_task_page()
+        self.show_user_info()
 
     def reset_task_page(self):
         pass
@@ -266,6 +303,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
 
     def courseType_comboBox_currentIndexChanged(self, index):
         """课程类型下拉框选中事件"""
+
         def parse_courses(courses):
             course_list = []
             for course in courses:
@@ -326,7 +364,6 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.select_RAC_id = secret_id
         self.logger.debug(f"select_RAC_id: {self.select_RAC_id}")
 
-
     def get_share_course_list(self):
         """获取共享课程列表"""
         pass
@@ -367,6 +404,49 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         # 保存配置文件
         config.write(open("config.ini", "w"))
         QMessageBox.information(self, "提示", "设置已保存，部分设置重启生效", QMessageBox.Ok)
+
+
+class RefreshQRCodeThread(QThread):
+    finished = pyqtSignal(bool)
+    info_message = pyqtSignal(bool, str)
+    qr_code_image = pyqtSignal(bytes)
+    show_info = pyqtSignal(str)
+
+    def __init__(self, UserAuth, logger=None, isLogin=False):
+        super(RefreshQRCodeThread, self).__init__()
+        self.UserAuth = UserAuth
+        self.logger = logger
+        self.isLogin = isLogin
+
+    def print_info(self, success, message):
+        self.isLogin = success
+        self.info_message.emit(success, message)
+
+    def print_message(self, data):
+        self.logger.info(data)
+        self.show_info.emit(data)
+
+    def show_qrcode_img(self, img):
+        img = base64.b64decode(img)
+        self.qr_code_image.emit(img)
+
+    def run(self):
+        qr_data = self.UserAuth.get_qr_code()
+        qr_token = qr_data["qr_token"]
+        self.show_qrcode_img(qr_data.get("img", None))
+        asyncio.run(
+            self.UserAuth.validate_qr_code(
+                qr_token,
+                logger=self.logger,
+                callback=self.print_info,
+                callback_info=self.print_message
+            )
+        )
+        if not self.isLogin:
+            self.finished.emit(False)
+        else:
+            self.finished.emit(True)
+
 
 
 def get_circular_pixmap(pixmap, size):

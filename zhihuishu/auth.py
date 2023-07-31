@@ -13,6 +13,7 @@ import time
 import urllib
 
 import requests
+import websockets
 
 from captcha.captcha import yidun
 from utils.encrypt import get_login_captcha_id, get_login_captcha_v
@@ -139,6 +140,9 @@ class UserHandler:
         success, msg = self.validate_account_password(username, password)
         if not success:
             return success, msg
+        return self.pwd_login()
+
+    def pwd_login(self):
         if not self.pwd:
             return False, "无法获取pwd"
         url = "https://passport.zhihuishu.com/login"
@@ -153,7 +157,8 @@ class UserHandler:
             new_url = response.headers.get("location", None)
             if new_url is None:
                 return False, "登录失败: new_url is None"
-            if new_url == "https://onlineweb.zhihuishu.com" or "SESSION" in requests.utils.dict_from_cookiejar(self.session.cookies):
+            if new_url == "https://onlineweb.zhihuishu.com" or "SESSION" in requests.utils.dict_from_cookiejar(
+                    self.session.cookies):
                 break
             success, response = self.gologin(new_url)
             if not success:
@@ -161,6 +166,64 @@ class UserHandler:
         if not self.get_user_info():
             return False, "登录失败, 无法验证身份"
         return True, "登录成功"
+
+    def get_qr_code(self):
+        """
+        获取二维码
+        :return: dict
+        """
+        qr_page = "https://passport.zhihuishu.com/qrCodeLogin/getLoginQrImg"
+        response = self.session.get(qr_page, timeout=5)
+        if response.status_code != 200:
+            return None
+        data = response.json()
+        qrToken = data.get("qrToken", None)
+        img = data.get("img", None)
+        return {
+            "qr_token": qrToken,
+            "img": img
+        }
+
+    async def validate_qr_code(self, qr_token, callback=None, callback_info=None, logger=None):
+        """
+        验证二维码
+        :param qr_token: 令牌
+        :param callback: 回调函数
+        :param callback_info: 消息回调函数
+        :param logger: 日志记录器
+        :return: message
+        """
+        params = {
+            "qrToken": qr_token
+        }
+        url = f"wss://appcomm-user.zhihuishu.com/app-commserv-user/websocket?{urllib.parse.urlencode(params)}"
+        async with websockets.connect(url, extra_headers=self.session.headers) as websocket:
+            while True:
+                data = json.loads(await websocket.recv())
+                msg = data.get("msg", "Unknown Message")
+                match data.get("code", 0):
+                    case 0:
+                        if logger:
+                            logger.info(msg)
+                        callback_info(msg)
+                    case 1:
+                        if logger:
+                            logger.info(msg)
+                        callback_info(msg)
+                        self.pwd = data.get("oncePassword", None)
+                        success, msg = self.pwd_login()
+                        callback(success, msg)
+                        return None
+                    case 2:
+                        if logger:
+                            logger.warning(msg)
+                        callback(False, msg)
+                        return None
+                    case _:
+                        if logger:
+                            logger.warning(msg)
+                        callback(False, msg)
+                        return None
 
     def save_cookies(self):
         """保存cookies至本地"""
