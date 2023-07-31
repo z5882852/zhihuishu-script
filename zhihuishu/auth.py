@@ -87,7 +87,7 @@ class UserHandler:
         params = {
             "time": int(time.time())
         }
-        response = self.session.get(url, headers=self.headers, params=params)
+        response = self.session.get(url, headers=self.headers, params=params, timeout=3)
         if response.status_code != 200:
             return False
         data = response.json()
@@ -108,7 +108,7 @@ class UserHandler:
             return False, "获取验证码失败"
         url = "https://passport.zhihuishu.com/user/validateAccountAndPassword"
         data = {"secretStr": secret_str}
-        response = self.session.post(url, headers=self.headers, data=data)
+        response = self.session.post(url, headers=self.headers, data=data, timeout=3)
         if response.status_code != 200:
             return False, f"登录失败, status_code: {response.status_code}"
         data = response.json()

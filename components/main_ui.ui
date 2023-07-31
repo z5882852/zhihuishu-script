@@ -118,6 +118,13 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="styleSheet">
+        <string notr="true">#userImg_label {
+	background-color: rgb(85, 255, 255);
+border: 0px solid black;
+border-radius: 37px;
+}</string>
+       </property>
        <property name="text">
         <string/>
        </property>
@@ -261,7 +268,7 @@
                  <string notr="true">border-bottom: 1px solid black;</string>
                 </property>
                 <property name="text">
-                 <string>user</string>
+                 <string/>
                 </property>
                 <property name="frame">
                  <bool>false</bool>
@@ -308,7 +315,7 @@
                  <string notr="true">border-bottom: 1px solid black;</string>
                 </property>
                 <property name="text">
-                 <string>password</string>
+                 <string/>
                 </property>
                 <property name="frame">
                  <bool>false</bool>

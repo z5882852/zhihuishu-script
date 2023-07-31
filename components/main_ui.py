@@ -57,6 +57,11 @@ class Ui_MainGUI(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.userImg_label.sizePolicy().hasHeightForWidth())
         self.userImg_label.setSizePolicy(sizePolicy)
+        self.userImg_label.setStyleSheet("#userImg_label {\n"
+"    background-color: rgb(85, 255, 255);\n"
+"border: 0px solid black;\n"
+"border-radius: 37px;\n"
+"}")
         self.userImg_label.setText("")
         self.userImg_label.setObjectName("userImg_label")
         self.username_label = QtWidgets.QLabel(self.frame_control)
@@ -124,6 +129,7 @@ class Ui_MainGUI(object):
         font.setPointSize(11)
         self.Username_Input.setFont(font)
         self.Username_Input.setStyleSheet("border-bottom: 1px solid black;")
+        self.Username_Input.setText("")
         self.Username_Input.setFrame(False)
         self.Username_Input.setObjectName("Username_Input")
         self.horizontalLayout_2.addWidget(self.Username_Input)
@@ -149,6 +155,7 @@ class Ui_MainGUI(object):
         font.setPointSize(11)
         self.Password_Input.setFont(font)
         self.Password_Input.setStyleSheet("border-bottom: 1px solid black;")
+        self.Password_Input.setText("")
         self.Password_Input.setFrame(False)
         self.Password_Input.setObjectName("Password_Input")
         self.horizontalLayout_3.addWidget(self.Password_Input)
@@ -614,9 +621,7 @@ class Ui_MainGUI(object):
         self.username_label.setText(_translate("MainGUI", "未登录"))
         self.login_Button.setText(_translate("MainGUI", "登录"))
         self.label.setText(_translate("MainGUI", "用户名"))
-        self.Username_Input.setText(_translate("MainGUI", "user"))
         self.label_2.setText(_translate("MainGUI", "密码  "))
-        self.Password_Input.setText(_translate("MainGUI", "password"))
         self.QRCodePage_Button.setText(_translate("MainGUI", "扫码登录"))
         self.refreshQRCode_Button.setText(_translate("MainGUI", "刷新"))
         self.QRCodeInfo_label.setText(_translate("MainGUI", "请使用APP扫码登录"))

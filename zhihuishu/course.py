@@ -65,15 +65,15 @@ class QueryCourse:
         }
         response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"查询共享课失败，status_code: {response.status_code}")
+            self.logger.warning(f"查询共享课失败，status_code: {response.status_code}")
             return []
         data = response.json()
         if data.get("code", 500) != 200:
-            print(f"查询共享课失败，result_code: {data.get('code', 500)}")
+            self.logger.warning(f"查询共享课失败，result_code: {data.get('code', 500)}")
             return []
         course_list = data.get("result", {}).get("courseOpenDtos", None)
         if not course_list:
-            print(f"共享课内容为空")
+            self.logger.warning(f"共享课内容为空")
             return []
         return course_list
 
@@ -89,22 +89,22 @@ class QueryCourse:
         }
         response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"查询校内学分课失败，status_code: {response.status_code}")
+            self.logger.warning(f"查询校内学分课失败，status_code: {response.status_code}")
             return []
         data = response.json()
         if data.get("code", 500) != 200:
-            print(f"查询校内学分课失败，result_code: {data.get('code', 500)}")
+            self.logger.warning(f"查询校内学分课失败，result_code: {data.get('code', 500)}")
             return []
         course_list = data.get("result", {}).get("courseOpenDtos", None)
         if not course_list:
-            print(f"校内学分课内容为空")
+            self.logger.warning(f"校内学分课内容为空")
             return []
         return course_list
 
     def query_2C_course(self):
         """查询兴趣课"""
         if not self.uuid:
-            print("无法获取用户UUID!")
+            self.logger.warning("无法获取用户UUID!")
             return []
         url = "https://b2cpush.zhihuishu.com/b2cpush/courseDetail/query2CCourseList"
         data = {
@@ -115,18 +115,18 @@ class QueryCourse:
         }
         response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"查询兴趣课失败，status_code: {response.status_code}")
+            self.logger.warning(f"查询兴趣课失败，status_code: {response.status_code}")
             return []
         data = response.json()
         if data.get("status", 500) != "200":
-            print(f"查询兴趣课失败，result_code: {data.get('status', 500)}")
+            self.logger.warning(f"查询兴趣课失败，result_code: {data.get('status', 500)}")
             return []
         if not data.get("rt", None):
-            print(f"兴趣课内容为空")
+            self.logger.warning(f"兴趣课内容为空")
             return []
         course_list = data.get("rt", {}).get("dataList", None)
         if not course_list:
-            print(f"兴趣课内容为空")
+            self.logger.warning(f"兴趣课内容为空")
             return []
         return course_list
 
@@ -141,18 +141,18 @@ class QueryCourse:
         }
         response = self.session.post(url, headers=self.headers, data=data)
         if response.status_code != 200:
-            print(f"查询AI课失败，status_code: {response.status_code}")
+            self.logger.warning(f"查询AI课失败，status_code: {response.status_code}")
             return []
         data = response.json()
         if data.get("status", 500) != "200":
-            print(f"查询AI课失败，result_code: {data.get('status', 500)}")
+            self.logger.warning(f"查询AI课失败，result_code: {data.get('status', 500)}")
             return []
         if not data.get("rt", None):
-            print(f"AI课内容为空")
+            self.logger.warning(f"AI课内容为空")
             return []
         course_list = data.get("rt", {}).get("dataList", None)
         if not course_list:
-            print(f"AI课内容为空")
+            self.logger.warning(f"AI课内容为空")
             return []
         return course_list
 
