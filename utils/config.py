@@ -1,15 +1,25 @@
 import configparser
+import os
 
+from utils.path import CONFIG_PATH, CONFIG_TEMPLATE_PATH
 
 
 def get_config():
+    # 查询配置文件是否存在，不存在则创建。
+    if os.path.exists(CONFIG_PATH) is False:
+        # 读取配置文件模板。
+        config_template = configparser.ConfigParser()
+        config_template.read(CONFIG_TEMPLATE_PATH, encoding='utf-8')
+        # 创建配置文件。
+        save_config(config_template)
+    # 读取配置文件。
     config = configparser.ConfigParser()
-    config.read('config.ini', encoding='utf-8')
+    config.read(CONFIG_PATH, encoding='utf-8')
     return config
 
 
 def save_config(config):
-    with open('config.ini', 'w', encoding='utf-8') as file:
+    with open(CONFIG_PATH, 'w', encoding='utf-8') as file:
         config.write(file)
 
 

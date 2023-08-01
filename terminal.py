@@ -3,11 +3,12 @@ import requests
 from utils.config import is_save_cookies
 from zhihuishu.auth import UserHandler
 from zhihuishu.course import QueryCourse
-from zhihuishu.study import StudyShareCourse, TerminalStudyShareCourse
+from zhihuishu.study import TerminalStudyShareCourse
 from utils.logger import Logger
 from utils.utils import get_cookies, save_cookies
 
-if __name__ == "__main__":
+
+def run():
     # 初始化日志模块
     logger = Logger()
     logger.info("################脚本开始运行################")

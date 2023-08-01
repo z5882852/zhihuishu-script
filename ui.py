@@ -115,7 +115,6 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         """显示用户信息"""
         self.logger.debug("user_info: %s" % self.UserAuth.user_data)
         self.username_label.setText(self.UserAuth.user_data.get("realName", "未知用户名"))
-        self.username_label.setText("已登录")
         img_url = self.UserAuth.user_data.get("headPicUrl", "")
         try:
             img_data = download_image(self.session, img_url)
@@ -161,9 +160,10 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
     def show_qrcode_page(self):
         if self.stackedWidget_login.currentIndex() == 1:
             return None
-        reply = QMessageBox.question(self, '提示', '该操作会退出账号，是否继续？', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply != QMessageBox.Yes:
-            return None
+        if self.isLogin:
+            reply = QMessageBox.question(self, '提示', '该操作会退出账号，是否继续？', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if reply != QMessageBox.Yes:
+                return None
         self.stackedWidget_login.setCurrentIndex(1)
         self.refresh_qrcode()
 
@@ -626,7 +626,7 @@ def get_circular_pixmap(pixmap, size):
         return QtGui.QPixmap()
 
 
-if __name__ == "__main__":
+def run():
     app = QtWidgets.QApplication(sys.argv)
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("myappid")
     logger = Logger()
@@ -634,3 +634,6 @@ if __name__ == "__main__":
     ui = MainGUI(logger)
     ui.show()
     sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    run()
