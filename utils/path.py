@@ -8,7 +8,7 @@ ICON_PATH = os.path.join(IMAGE_PATH, "icon.png")
 USER_IMG_PATH = os.path.join(IMAGE_PATH, "user.jpg")
 CONFIG_PATH = os.path.join(ROOT_PATH, "config.ini")
 CONFIG_TEMPLATE_PATH = os.path.join(RES_PATH, "template", "config.ini.template")
-
+NODEJS_PATH = os.path.join(RES_PATH, "node.exe")
 
 CAPTCHA_PATH = os.path.join(ROOT_PATH, "captcha")
 

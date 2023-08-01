@@ -37,7 +37,7 @@ def write_json_file(json_data, file_path):
 def read_cookies(username):
     cookies_path = get_cookies_path()
     if not is_file_exists(cookies_path):
-        write_json_file([], cookies_path)
+        write_json_file({}, cookies_path)
     cookies = read_json_file(cookies_path)
     return list_to_cookie_jar(cookies.get(username, []))
 

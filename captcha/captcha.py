@@ -4,12 +4,23 @@ import math
 import random
 import execjs
 import requests
-
 from urllib import request
 import numpy as np
-
+from execjs import _runner_sources
 from captcha.gap import get_gap
 from utils import path as file_path
+
+
+# 本地nodejs环境
+local_node_runtime = execjs.ExternalRuntime(
+    name="Node.js (V8) local",
+    command='',
+    encoding='UTF-8',
+    runner_source=_runner_sources.Node
+)
+local_node_runtime._binary_cache = [file_path.NODEJS_PATH]
+local_node_runtime._available = True
+execjs.register('local_node', local_node_runtime)
 
 
 def get_track(space):
@@ -47,7 +58,7 @@ def get_ctx(path):
     """
     with open(path, 'r', encoding='utf-8') as f:
         content = f.read()
-    ctx = execjs.compile(content)
+    ctx = execjs.get('local_node').compile(content)
     return ctx
 
 
