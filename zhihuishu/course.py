@@ -3,12 +3,10 @@
 """
 import json
 import time
-import urllib
 
 import requests
 from urllib.parse import unquote
 from utils.encrypt import encrypt_params
-from utils.logger import Logger
 
 
 class QueryCourse:

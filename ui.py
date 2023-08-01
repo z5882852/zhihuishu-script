@@ -1,17 +1,15 @@
 import asyncio
 import base64
 import ctypes
-import os
-import time
 
 import requests
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
-from PyQt5.QtCore import QThreadPool, pyqtSignal, QThread, QWaitCondition, QMutex, QObject
-from PyQt5.QtWidgets import QMessageBox, QInputDialog, QLineEdit
+from PyQt5.QtCore import QThreadPool, pyqtSignal, QThread
+from PyQt5.QtWidgets import QMessageBox
 
-from utils.config import is_save_cookies, get_settings_config, get_data_config, get_config
+from utils.config import is_save_cookies, get_settings_config, get_config
 from utils.logger import Logger
 from utils.path import ICON_PATH, USER_IMG_PATH
 from utils.utils import get_cookies, save_cookies, read_description, download_image

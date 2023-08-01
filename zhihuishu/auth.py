@@ -17,7 +17,7 @@ import websockets
 
 from captcha.captcha import yidun
 from utils.encrypt import get_login_captcha_id, get_login_captcha_v
-from utils.utils import merge_dict, append_cookies, get_user
+from utils.utils import append_cookies, get_user
 
 
 def get_validate():

@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "save_cookies": "是否保存用户登录cookies",
+    "error_retry": "错误重试次数",
+    "enable_log": "是否启用日志",
+    "enable_log_level": "启用的日志等级(使用','分隔)",
+    "print_info_level": "打印信息等级日志",
+    "description_path": "描述文件路径",
+    "cookies_path": "保存cookies的路径",
+    "tasks_path": "任务文件路径",
+    "log_folder": "日志文件夹路径"
+  }
+}

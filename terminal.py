@@ -8,7 +8,7 @@ from utils.logger import Logger
 from utils.utils import get_cookies, save_cookies
 
 
-def run():
+def run(speed=1):
     # 初始化日志模块
     logger = Logger()
     logger.info("################脚本开始运行################")
@@ -56,7 +56,7 @@ def run():
 
             # 开始学习
             secret = share_sourses[index - 1].get("secret")
-            SSC = TerminalStudyShareCourse(recruit_and_course_id=secret, session=session, logger=logger, speed=1)
+            SSC = TerminalStudyShareCourse(recruit_and_course_id=secret, session=session, logger=logger, speed=speed)
             SSC.start()
 
         except ValueError:
