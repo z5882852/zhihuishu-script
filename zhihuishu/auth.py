@@ -127,7 +127,7 @@ class UserHandler:
             return False, response
         return True, response
 
-    def login(self, username, password):
+    def login(self, username=None, password=None):
         """
         账号密码登录
         :param username: 用户名

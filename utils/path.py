@@ -8,3 +8,16 @@ ICON_PATH = os.path.join(IMAGE_PATH, "icon.png")
 USER_IMG_PATH = os.path.join(IMAGE_PATH, "user.jpg")
 CONFIG_PATH = os.path.join(ROOT_PATH, "config.ini")
 CONFIG_TEMPLATE_PATH = os.path.join(RES_PATH, "template", "config.ini.template")
+
+
+CAPTCHA_PATH = os.path.join(ROOT_PATH, "captcha")
+
+CAPTCHA_ACTOKEN_JS_PATH = os.path.join(CAPTCHA_PATH, "js", "actoken.js")
+CAPTCHA_CB_JS_PATH = os.path.join(CAPTCHA_PATH, "js", "cb.js")
+CAPTCHA_FP_JS_PATH = os.path.join(CAPTCHA_PATH, "js", "fp.js")
+CAPTCHA_SC_JS_PATH = os.path.join(CAPTCHA_PATH, "js", "secureCaptcha.js")
+
+
+CAPTCHA_IMG_1_PATH = os.path.join(CAPTCHA_PATH, "img", "1.png")
+CAPTCHA_IMG_2_PATH = os.path.join(CAPTCHA_PATH, "img", "2.jpg")
+CAPTCHA_IMG_3_PATH = os.path.join(CAPTCHA_PATH, "img", "3.png")

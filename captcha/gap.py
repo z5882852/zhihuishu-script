@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import cv2
-
+from utils import path as file_path
 
 class SlideCrack(object):
     def __init__(self, gap, bg, out):
@@ -70,8 +70,8 @@ class SlideCrack(object):
 
 
 def get_gap():
-    image1 = "captcha/img/1.png"
-    image2 = "captcha/img/2.jpg"
-    image3 = "captcha/img/3.png"
+    image1 = file_path.CAPTCHA_IMG_1_PATH
+    image2 = file_path.CAPTCHA_IMG_2_PATH
+    image3 = file_path.CAPTCHA_IMG_3_PATH
     sc = SlideCrack(image1, image2, image3)
     return sc.discern()

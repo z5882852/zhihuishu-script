@@ -9,6 +9,7 @@ from urllib import request
 import numpy as np
 
 from captcha.gap import get_gap
+from utils import path as file_path
 
 
 def get_track(space):
@@ -55,7 +56,7 @@ def get_fp_callback():
     获取fp、callback参数
     :return: fp, callback
     """
-    ctx = get_ctx('captcha/js/fp.js')
+    ctx = get_ctx(file_path.CAPTCHA_FP_JS_PATH)
     fp = ctx.call('get_fp')
     callback = ctx.call('get_callback')
     return fp, callback
@@ -69,13 +70,13 @@ def get_secure_captcha(validate, fp, zoneId):
     :param zoneId: 一般是CN31
     :return: 加密后的验证码
     """
-    ctx = get_ctx('captcha/js/secureCaptcha.js')
+    ctx = get_ctx(file_path.CAPTCHA_SC_JS_PATH)
     return ctx.call('getSecureCaptcha', validate, fp, zoneId)
 
 
 class crypto_params:
     def __init__(self):
-        self.ctx = get_ctx('captcha/js/cb.js')
+        self.ctx = get_ctx(file_path.CAPTCHA_CB_JS_PATH)
 
     def get_cb(self):
         return self.ctx.call('cb')
@@ -183,8 +184,8 @@ class yidun:
         r = requests.get('https://c.dun.163.com/api/v2/get', params=data, headers=headers, timeout=2)
         data_ = json.loads(re.findall('.*?\((.*?)\);', r.text)[0])
         token = data_['data']['token']
-        request.urlretrieve(data_['data']['front'][0], 'captcha/img/1.png')
-        request.urlretrieve(data_['data']['bg'][0], 'captcha/img/2.jpg')
+        request.urlretrieve(data_['data']['front'][0], file_path.CAPTCHA_IMG_1_PATH)
+        request.urlretrieve(data_['data']['bg'][0], file_path.CAPTCHA_IMG_2_PATH)
         distance = get_gap() + 5
         trace = get_track(distance)
         left = trace[-1][0] - 10
@@ -192,7 +193,7 @@ class yidun:
         cb = crypto_param.get_cb()
 
         # 生成actoken
-        ctx = get_ctx('captcha/js/actoken.js')
+        ctx = get_ctx(file_path.CAPTCHA_ACTOKEN_JS_PATH)
         rdtm = ctx.call('rdtm')
         did = self.get_actoken_median(ctx, rdtm)
         if not actoken:

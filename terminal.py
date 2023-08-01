@@ -73,3 +73,7 @@ def run(speed=1):
     session.close()
 
     logger.info("################脚本运行结束################")
+
+
+if __name__ == "__main__":
+    run()
