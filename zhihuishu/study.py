@@ -225,12 +225,12 @@ class StudyShareCourse:
                 pre_learning_note_data = self.get_studied_lesson_dto()
                 # 判断是否需要推理验证
                 if pre_learning_note_data.get("isSlide", False):
-                    self.show_study_info_callback("需要安全验证，正在尝试自动验证...")
+                    self.show_study_info_callback("需要安全验证...")
                     if self. pass_security_check():
                         self.show_study_info_callback("安全验证通过")
                     else:
                         self.isSlide = True
-                        self.show_study_info_callback("自动验证失败，请在网页或APP中手动验证后继续...")
+                        self.show_study_info_callback("安全验证未通过，请在网页或APP中手动验证后继续...")
                         break
                 # 获取studied_lesson_dto_id用于生成token_id
                 self.studied_lesson_dto_id = pre_learning_note_data.get("studiedLessonDto", {}).get("id", None)

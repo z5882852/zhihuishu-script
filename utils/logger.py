@@ -2,6 +2,7 @@ import datetime
 import logging
 
 from utils.config import get_log_folder, enable_log_level, enable_log, print_info_level
+from utils.utils import create_folder
 
 
 def setup_logger(logfile, log_level=logging.DEBUG):
@@ -23,6 +24,8 @@ def setup_logger(logfile, log_level=logging.DEBUG):
 
 class Logger:
     def __init__(self):
+        # 检查保存日志的文件夹是否存在
+        create_folder(get_log_folder())
         # 获取当前日期
         current_date = datetime.datetime.now().strftime("%Y-%m-%d")
         # 设置日志文件名和等级

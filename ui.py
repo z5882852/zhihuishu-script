@@ -288,7 +288,15 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.show_user_info()
 
     def reset_task_page(self):
-        pass
+        """重置任务页面"""
+        self.courseType_comboBox.setCurrentIndex(0)
+        self.courseName_comboBox.setCurrentIndex(0)
+        self.studyMode_comboBox.setCurrentIndex(0)
+        self.speed_doubleSpinBox.setValue(1.0)
+        self.maxStudyTime_spinBox.setValue(0)
+        self.maxStudyVideoNum_spinBox.setValue(0)
+        self.violent_checkBox.setChecked(False)
+        self.printLog_checkBox.setChecked(True)
 
     def open_captcha_window(self, v):
         # 打开验证码窗口
@@ -308,7 +316,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.captcha.close()
 
     def verify_fail(self):
-        self.study_thread.SSC.set_verify_fail()
+        self.study_thread.SSC.set_verify_failed()
         self.captcha.close()
 
 
@@ -511,7 +519,6 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         if self.study_thread is None:
             return None
         self.logger.debug("停止学习")
-        self.handle_study_info("停止学习中...")
         self.study_thread.SSC.stop()
         self.study_thread.quit()
         self.study_thread.wait()
@@ -616,14 +623,16 @@ class CaptchaGUI(QtWidgets.QWidget, Ui_CaptchaGUI):
         # 验证
         success = self.validate.validate_slide_token(token)
         if success:
-            # 弹窗提示窗口
-            QMessageBox.information(self, "提示", "验证成功", QMessageBox.Yes)
             self.verify_success.emit()
         else:
             # 弹窗警告窗口
             QMessageBox.warning(self, "警告", "未知错误，请在网页或APP验证", QMessageBox.Yes)
             self.verify_fail.emit()
 
+    def closeEvent(self, event):
+        """关闭窗口事件"""
+        self.verify_fail.emit()
+        event.accept()
 
     def mousePressEvent(self, event):
         # 获取鼠标点击事件的位置
