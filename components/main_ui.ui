@@ -513,11 +513,6 @@ border-radius: 37px;
               <string>共享学分课</string>
              </property>
             </item>
-            <item>
-             <property name="text">
-              <string>校内学分课</string>
-             </property>
-            </item>
            </widget>
           </item>
          </layout>

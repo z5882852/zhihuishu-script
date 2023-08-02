@@ -1,13 +1,12 @@
 import json
 import time
-from urllib.parse import unquote
-
 import requests
+
+from urllib.parse import unquote
 
 from utils.config import get_error_retry
 from zhihuishu.course import ShareCourse
-from utils.encrypt import EncryptShareVideoSaveParams, get_token_id, gen_watch_point
-
+from utils.encrypt import EncryptShareVideoSaveParams, get_token_id, gen_watch_point, Validate
 
 
 class StudyShareCourse:
@@ -21,8 +20,11 @@ class StudyShareCourse:
             show_study_info_callback=None,
             set_course_progress_callback=None,
             set_video_progress_callback=None,
+            security_check_callback=None,
     ):
         # 传入参数
+        self.verify_success = False
+        self.verify_failed = False
         self.logger = logger
         self.recruit_and_course_id = recruit_and_course_id
         if settings is None:
@@ -59,6 +61,7 @@ class StudyShareCourse:
         self.show_study_info_callback = show_study_info_callback
         self.set_course_progress_callback = set_course_progress_callback
         self.set_video_progress_callback = set_video_progress_callback
+        self.security_check_callback = security_check_callback
 
         # 课程数据，一般不变
         self.recruit_id = None
@@ -222,9 +225,13 @@ class StudyShareCourse:
                 pre_learning_note_data = self.get_studied_lesson_dto()
                 # 判断是否需要推理验证
                 if pre_learning_note_data.get("isSlide", False):
-                    self.isSlide = True
-                    self.show_study_info_callback("需要安全验证，请在网页或APP中手动验证后继续...")
-                    break
+                    self.show_study_info_callback("需要安全验证，正在尝试自动验证...")
+                    if self. pass_security_check():
+                        self.show_study_info_callback("安全验证通过")
+                    else:
+                        self.isSlide = True
+                        self.show_study_info_callback("自动验证失败，请在网页或APP中手动验证后继续...")
+                        break
                 # 获取studied_lesson_dto_id用于生成token_id
                 self.studied_lesson_dto_id = pre_learning_note_data.get("studiedLessonDto", {}).get("id", None)
                 # 该视频已学习的时间
@@ -513,6 +520,32 @@ class StudyShareCourse:
         success = result.get("submitStatus", False)
         return success
 
+    def pass_security_check(self):
+        """通过安全验证"""
+        validate_data = Validate(
+            session=self.session,
+            logger=self.logger,
+            recruit_id=self.recruit_id,
+            lesson_id=self.viewing_video_info.get("lesson_id"),
+            small_lesson_id=self.viewing_video_info.get("small_lesson_id"),
+            last_view_video_id=self.viewing_video_info.get("video_id"),
+            chapterId=self.viewing_video_info.get("chapter_id"),
+        )
+        self.security_check_callback(validate_data)
+
+        # # 打开验证窗口
+        # self.logger.debug("正在打开验证窗口...")
+        # ui = CaptchaGUI(session=self.session, logger_instance=self.logger, Validate_instance=validate_data)
+        # threading.Thread(target=ui.show).start()
+        # self.logger.debug("验证窗口已打开")
+        # # 等待验证完成
+        while True:
+            if self.verify_success:
+                return True
+            if self.verify_failed:
+                return False
+            time.sleep(1)
+
     def next_video(self):
         """切换下一个视频"""
         next_video_info = None
@@ -530,6 +563,13 @@ class StudyShareCourse:
 
     def stop(self):
         self.finish = True
+
+    def set_verify_success(self):
+        self.verify_success = True
+
+    def set_verify_failed(self):
+        self.verify_failed = True
+
 
 class TerminalStudyShareCourse:
     def __init__(self, recruit_and_course_id, session, logger, speed=1.5):
@@ -954,6 +994,17 @@ class TerminalStudyShareCourse:
         self.logger.debug(f"submit_question_result: {result}")
         success = result.get("submitStatus", False)
         return success
+
+    # 通过安全验证
+    def pass_security_check(self):
+        validate = Validate(
+            session=self.session,
+            recruit_id=self.recruit_id,
+            lesson_id=self.viewing_video_info.get("lesson_id"),
+            small_lesson_id=self.viewing_video_info.get("small_lesson_id", None),
+            chapterId=self.viewing_video_info.get("chapter_id"),
+        )
+        return validate.validate_slide_token()
 
     def next_video(self):
         """切换下一个视频"""

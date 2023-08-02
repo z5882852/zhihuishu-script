@@ -1,4 +1,6 @@
-const _0x4139 = function (num) { return num}
+const _0x4139 = function (num) {
+    return num
+}
 const __toByte = function (_0x202ad9) {
     function _0x163413(_0x77a615) {
         return _0x202ad9["apply"](this, arguments);
@@ -14,13 +16,14 @@ const __toByte = function (_0x202ad9) {
     if (_0x421070 > 0x7f) return __toByte(-0x81 + _0x421070 - 0x7f);
     throw new Error("1001");
 });
+
 function _0x5b9085(_0x4f8c05, _0x1cae29, _0x3e6a1d) {
     return _0x1cae29 in _0x4f8c05 ? Object["defineProperty"](_0x4f8c05, _0x1cae29, {
-			'value': _0x3e6a1d,
-			'enumerable': !0x0,
-			'configurable': !0x0,
-			'writable': !0x0
-		}) : _0x4f8c05[_0x1cae29] = _0x3e6a1d, _0x4f8c05;
+        'value': _0x3e6a1d,
+        'enumerable': !0x0,
+        'configurable': !0x0,
+        'writable': !0x0
+    }) : _0x4f8c05[_0x1cae29] = _0x3e6a1d, _0x4f8c05;
 }
 
 const _0x362dd1 = function (_0x2b36cb, _0x4d239f) {
@@ -242,8 +245,7 @@ const _0x362dd1 = function (_0x2b36cb, _0x4d239f) {
         return _0x5fd78d;
     },
     _0x264dbc = function (_0x4f1413) {
-        var _0x3f38a8 = _0x4139,
-            _0x503417 = "14731382d816714fC59E47De5dA0C871D3F";
+        var _0x503417 = "14731382d816714fC59E47De5dA0C871D3F";
         if (null == _0x503417 || void 0x0 == _0x503417) throw new Error("1008");
         null != _0x4f1413 && void 0x0 != _0x4f1413 || (_0x4f1413 = '');
         var _0x4a06aa = _0x4f1413 + _0x4b8e98(_0x4f1413),
@@ -264,8 +266,55 @@ function _0x2f6341(_0x4b4bb3) {
     });
 }
 
+function _0x46a69f(_0x4bcf2b, _0x5ae99a) {
+    function _0x3527fc(_0x306a36, _0x1c22db) {
+        return _0x306a36['charCodeAt'](Math['floor'](_0x1c22db % _0x306a36["length"]));
+    }
+
+    function _0x65ea4f(_0x48bf4a, _0x18f113) {
+        return _0x18f113["split"]('')['map'](function (_0x5287eb, _0xa0edcf) {
+            return _0x5287eb['charCodeAt'](0x0) ^ _0x3527fc(_0x48bf4a, _0xa0edcf);
+        });
+    }
+
+    return _0x5ae99a = _0x65ea4f(_0x4bcf2b, _0x5ae99a), _0xf778df(_0x5ae99a);
+}
+
+function sample_f(_0x2680f7, _0x341ccb) {
+    var _0xcbb31e = _0x2680f7["length"];
+    if (_0xcbb31e <= _0x341ccb) return _0x2680f7;
+    for (var _0x5bd7f2 = [], _0x478228 = 0x0, _0x5cf1a1 = 0x0; _0x5cf1a1 < _0xcbb31e; _0x5cf1a1++)
+        _0x5cf1a1 >= _0x478228 * (_0xcbb31e - 0x1) / (_0x341ccb - 0x1) && (_0x5bd7f2["push"](_0x2680f7[_0x5cf1a1]),
+            _0x478228 += 0x1);
+    return _0x5bd7f2;
+}
+
+function get_pointsStack(token, x, y) {
+    let use_time = Math["round"](Math["random"]() * 1000 + 3000)
+    console.log(use_time)
+    let coord = _0x46a69f(
+        token,
+        [
+            Math["round"](x),
+            Math["round"](y),
+            use_time
+        ] + ''
+    )
+    return coord
+}
 
 function getSecureCaptcha(_0x370c54, _0x21d22f, _0x46567b) {
     const _0x5b7f32 = _0x2f6341(_0x264dbc(_0x370c54 + '::' + _0x21d22f));
     return _0x46567b ? _0x46567b + '_' + _0x5b7f32 : _0x5b7f32;
+}
+
+function get_data(token, x, y) {
+    let left = x * 320, top = y * 160;
+    let pointsStack = get_pointsStack(token, left, top);
+    return JSON["stringify"]({
+        'd': '',
+        'm': _0x264dbc(sample_f([], 50)["join"](':')),
+        'p': _0x264dbc(pointsStack),
+        'ext': _0x264dbc(_0x46a69f(token, '1,0'))
+    })
 }

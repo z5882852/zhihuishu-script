@@ -20,6 +20,8 @@ log_folder = log/
 # 验证码参数
 login_captcha_id = 75f9f716460a422f89a628f50fd8cc2b
 login_captcha_v = af2952a4
+space_inference_captcha_id = 4da3050565514a35a50541b0e1f54538
+space_inference_captcha_v = af2952a4
 
 # AES加密参数
 AES_IV = 1g3qqdh4jvbskb9x

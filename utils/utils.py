@@ -118,8 +118,13 @@ def read_description():
     return read_json_file(description_path)
 
 
-# 通过url下载图片，返回img_data
 def download_image(session, url):
+    """
+    通过url下载图片，返回img_data
+    :param session:
+    :param url:
+    :return:
+    """
     response = session.get(url, timeout=3)
     if response.status_code == 200:
         img_data = response.content

@@ -1,15 +1,20 @@
 import asyncio
 import base64
 import ctypes
+import threading
+import time
 
 import requests
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
 from PyQt5.QtCore import QThreadPool, pyqtSignal, QThread
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QDesktopWidget, QMainWindow
 
+from captcha.space_inference import SpaceInference
+from components.captcha_ui import Ui_CaptchaGUI
 from utils.config import is_save_cookies, get_settings_config, get_config
+from utils.encrypt import get_space_inference_captcha_id, get_space_inference_captcha_v
 from utils.logger import Logger
 from utils.path import ICON_PATH, USER_IMG_PATH
 from utils.utils import get_cookies, save_cookies, read_description, download_image
@@ -20,7 +25,7 @@ from zhihuishu.study import StudyShareCourse
 
 
 class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
-    def __init__(self, logger_instance):
+    def __init__(self, logger_instance, captcha_instance=None):
         super(MainGUI, self).__init__()
         self.setupUi(self)
         # 设置窗口标题
@@ -61,6 +66,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         # 初始化
         self.threadpool = QThreadPool()
         self.logger = logger_instance
+        self.captcha = None
         self.isLogining = False
         self.isLogin = False
         self.session = None
@@ -284,6 +290,29 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
     def reset_task_page(self):
         pass
 
+    def open_captcha_window(self, v):
+        # 打开验证码窗口
+        self.captcha = CaptchaGUI(
+            session=self.session,
+            logger_instance=self.logger,
+            Validate_instance=v
+        )
+        self.captcha.load_captcha()
+        self.captcha.show()
+        # 绑定信号
+        self.captcha.verify_success.connect(self.verify_success)
+        self.captcha.verify_fail.connect(self.verify_fail)
+
+    def verify_success(self):
+        self.study_thread.SSC.set_verify_success()
+        self.captcha.close()
+
+    def verify_fail(self):
+        self.study_thread.SSC.set_verify_fail()
+        self.captcha.close()
+
+
+
     def create_task(self):
         """创建任务"""
         if self.isLogin is False:
@@ -472,6 +501,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.study_thread.show_study_info.connect(self.handle_study_info)
         self.study_thread.set_course_progress.connect(handle_set_course_progress)
         self.study_thread.set_video_progress.connect(handle_set_video_progress)
+        self.study_thread.security_check.connect(self.open_captcha_window)
         self.study_thread.finished.connect(handle_study_finished)
 
         self.study_thread.start()
@@ -502,6 +532,124 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
             event.accept()
         else:
             event.ignore()
+
+
+class CaptchaGUI(QtWidgets.QWidget, Ui_CaptchaGUI):
+    # 绑定信号
+    verify_success = QtCore.pyqtSignal()
+    verify_fail = QtCore.pyqtSignal()
+
+    def __init__(self, session=None, logger_instance=None, Validate_instance=None):
+        super(CaptchaGUI, self).__init__()
+        self.setupUi(self)
+        self.setGeometry(0, 0, 400, 300)
+        self.center()
+        self.setWindowIcon(QtGui.QIcon(ICON_PATH))
+
+        # 绑定按钮事件
+        self.verify_Button.clicked.connect(self.verify)
+        # 禁用按钮
+        self.verify_Button.setEnabled(False)
+
+        # 初始化
+        self.session = session
+        self.logger = logger_instance
+        self.validate = Validate_instance
+        self.SI = SpaceInference(get_space_inference_captcha_id())
+        self.SI.captcha_data['type'] = '11'
+        self.SI.captcha_data['v'] = get_space_inference_captcha_v()
+        self.position = {'x': 0.00, 'y': 0.00}
+        self.captcha_data = None
+        self.token = None
+        # self.load_captcha()
+
+
+
+    def load_captcha(self):
+        """加载验证码"""
+        self.verify_Button.setEnabled(False)
+        # 获取验证码数据
+        self.captcha_data = self.SI.get_captcha()
+        captcha_image_urls = self.captcha_data.get('data', {}).get('bg', None)
+        if captcha_image_urls is None:
+            return
+        self.logger.debug("captcha_img_url: %s" % captcha_image_urls[0])
+        try:
+            img_data = download_image(self.session, captcha_image_urls[0])
+        except Exception as e:
+            # 弹窗警告窗口
+            QMessageBox.warning(self, "警告", "无法获取验证图片，错误信息: %s" % e, QMessageBox.Yes)
+            self.logger.error("无法获取验证图片，错误信息: %s" % e)
+            return None
+        if img_data is None:
+            self.logger.warning("无法获取验证图片")
+            return None
+        # 将图片显示在标签上
+        image = QtGui.QPixmap()
+        image.loadFromData(img_data)
+        scaled_image = image.scaled(320, 160, aspectRatioMode=QtCore.Qt.KeepAspectRatio)
+        self.captcha_img.setPixmap(scaled_image)
+        self.captcha_img.setScaledContents(True)
+        # 设置提示
+        prompt = self.captcha_data.get('data', {}).get('front', None)
+        self.logger.debug("captcha_prompt: %s" % prompt)
+        if prompt is None:
+            return
+        self.captcha_prompt.setText(prompt)
+
+    def verify(self):
+        """验证"""
+        self.verify_Button.setEnabled(False)
+        x = self.position['x']
+        y = self.position['y']
+        self.SI.check(x, y)
+        self.logger.debug("验证结果: %s" % self.SI.result)
+        token = self.SI.secure_captcha
+        if token is None:
+            # 弹窗警告窗口
+            QMessageBox.warning(self, "警告", "验证失败，请重试", QMessageBox.Yes)
+            # 重新加载验证码
+            self.load_captcha()
+            return
+        self.token = token
+        self.logger.debug("token: %s" % token)
+        # 验证
+        success = self.validate.validate_slide_token(token)
+        if success:
+            # 弹窗提示窗口
+            QMessageBox.information(self, "提示", "验证成功", QMessageBox.Yes)
+            self.verify_success.emit()
+        else:
+            # 弹窗警告窗口
+            QMessageBox.warning(self, "警告", "未知错误，请在网页或APP验证", QMessageBox.Yes)
+            self.verify_fail.emit()
+
+
+    def mousePressEvent(self, event):
+        # 获取鼠标点击事件的位置
+        pos = event.pos()
+        # 判断点击是否在标签上
+        if self.captcha_img.geometry().contains(pos):
+            # 保留两位小数
+            x = float('%.2f' % ((pos.x() - 40) / 320))
+            y = float('%.2f' % ((pos.y() - 10) / 160))
+
+            self.position['x'] = x
+            self.position['y'] = y
+            self.position_x.setText(str(self.position['x']))
+            self.position_y.setText(str(self.position['y']))
+            self.logger.debug('点击了标签，位置： %s, %s' % (x, y))
+            # 启用按钮
+            self.verify_Button.setEnabled(True)
+
+    def center(self):
+        """居中显示"""
+        screen = QDesktopWidget().screenGeometry()
+        size = self.geometry()
+        self.move(
+            int((screen.width() - size.width()) / 2),
+            int((screen.height() - size.height()) / 2)
+        )
 
 
 class RefreshQRCodeThread(QThread):
@@ -551,6 +699,8 @@ class StudyThread(QThread):
     show_study_info = pyqtSignal(str)
     set_course_progress = pyqtSignal(float)
     set_video_progress = pyqtSignal(float)
+    # 安全验证
+    security_check = pyqtSignal(object)
     finished = pyqtSignal(bool)
 
     def __init__(self, RAC_id=None, session=None, logger=None, settings=None):
@@ -573,6 +723,10 @@ class StudyThread(QThread):
     def set_video_progress_callback(self, progress):
         self.set_video_progress.emit(progress)
 
+    def security_check_callback(self, data):
+        self.security_check.emit(data)
+        # self.SSC.verify_success = True
+
     def run(self):
         self.SSC = StudyShareCourse(
             recruit_and_course_id=self.RAC_id,
@@ -583,6 +737,7 @@ class StudyThread(QThread):
             show_study_info_callback=self.show_study_info_callback,
             set_course_progress_callback=self.set_course_progress_callback,
             set_video_progress_callback=self.set_video_progress_callback,
+            security_check_callback=self.security_check_callback
         )
         self.SSC.start()
         self.finished.emit(True)

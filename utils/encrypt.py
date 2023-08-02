@@ -1,8 +1,11 @@
 import base64
 import json
+import time
+
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
+from captcha.space_inference import SpaceInference
 from utils.config import get_config
 
 # 2.js 登录   key: 7q9oko0vqb3la20r
@@ -21,6 +24,14 @@ def get_login_captcha_id():
 
 def get_login_captcha_v():
     return get_config().get('encrypt', 'login_captcha_v')
+
+
+def get_space_inference_captcha_id():
+    return get_config().get('encrypt', 'space_inference_captcha_id')
+
+
+def get_space_inference_captcha_v():
+    return get_config().get('encrypt', 'space_inference_captcha_v')
 
 
 def get_AES_keys(key_name):
@@ -169,3 +180,59 @@ class EncryptShareVideoSaveParams:
         m = sec % 3600 // 60
         s = sec % 60
         return f"{h:02}:{m:02}:{s:02}"
+
+
+class Validate:
+    def __init__(self, session=None, logger=None, recruit_id=None, lesson_id=None, small_lesson_id=None, last_view_video_id=None, chapterId=None):
+        """通过安全验证码"""
+        self.session = session
+        self.logger = logger
+        self.ev_list = [
+            recruit_id,
+            lesson_id,
+            small_lesson_id if small_lesson_id is not None else 0,
+            last_view_video_id,
+            chapterId
+        ]
+        self.logger.debug(f"构建的ev参数列表为：{self.ev_list}")
+
+    def get_encrypted_params(self, secure_captcha):
+        """获取加密后的参数"""
+        params = {
+            "token": secure_captcha,
+            "ev": encrypt_ev(self.ev_list, get_ev_key('D26666_KEY')),
+            "checkType": 1
+        }
+        self.logger.debug(f"构建的参数为：{params}")
+        params = encrypt_params(params, 'study_aes_key')
+        return params
+
+    def validate_slide_token(self, secure_captcha):
+        headers = {
+            "Accept": "*/*",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "https://studyvideoh5.zhihuishu.com",
+            "Pragma": "no-cache",
+            "Referer": "https://studyvideoh5.zhihuishu.com/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.188",
+            "sec-ch-ua": "\"Not/A)Brand\";v=\"99\", \"Microsoft Edge\";v=\"115\", \"Chromium\";v=\"115\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\""
+        }
+        url = "https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/validateSlideToken"
+        data = {
+            "secretStr": self.get_encrypted_params(secure_captcha),
+            "dateFormate": int(time.time() * 1000)
+        }
+        response = self.session.post(url, headers=headers, data=data)
+        self.logger.debug(f"验证验证码的状态码： {response.status_code}, 响应：{response.text}")
+        if response.status_code != 200:
+            return False
+        data = response.json().get('data', {})
+        return data.get('status', '0') == "200" and data.get('pass', False)
