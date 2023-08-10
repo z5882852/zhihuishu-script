@@ -99,3 +99,11 @@ python main.py --cmd
   - 双击`zhihuishu.exe`即可运行
 
 > 第一次运行会生成配置文件，配置文件路径为项目目录下的`config.ini`文件，请根据自己的需求修改配置文件
+
+## 一些说明
+### cookies
+由于cookies中包含了用户的登录凭证，所以请不要将cookies泄露给他人
+### 异地登录问题
+如果异地或黑名单登录，会提示“登录失败, 需要空间推理验证”，请使用图形化模式验证，或在同一网络环境内登录网页验证。
+
+![安全验证演示](./components/res/images/captcha_demo.png)

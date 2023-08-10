@@ -9,7 +9,7 @@ if __name__ == "__main__":
         speed = 1  # 默认速度为1
         while True:
             try:
-                speed = int(input("请输入速度(1-10)："))
+                speed = int(input("请输入视频观看速度(1-10)："))
                 if speed < 1 or speed > 10:
                     raise ValueError
                 break

@@ -1,15 +1,13 @@
 import asyncio
 import base64
 import ctypes
-import threading
-import time
 
 import requests
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
 from PyQt5.QtCore import QThreadPool, pyqtSignal, QThread
-from PyQt5.QtWidgets import QMessageBox, QDesktopWidget, QMainWindow
+from PyQt5.QtWidgets import QMessageBox, QDesktopWidget
 
 from captcha.space_inference import SpaceInference
 from components.captcha_ui import Ui_CaptchaGUI
@@ -66,6 +64,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         # 初始化
         self.threadpool = QThreadPool()
         self.logger = logger_instance
+        self.login_captcha = None
         self.captcha = None
         self.isLogining = False
         self.isLogin = False
@@ -214,9 +213,11 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
 
     def password_login(self):
         """密码登录"""
+        # 防止重复点击
         if self.isLogining:
             return None
         self.isLogining = True
+        # 禁用登录按钮
         self.login_Button.setDisabled(True)
         username = self.Username_Input.text()
         password = self.Password_Input.text()
@@ -225,7 +226,17 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
             self.login_Button.setDisabled(False)
             QMessageBox.information(self, "提示", "请输入用户名和密码", QMessageBox.Ok)
             return None
-        success, mes = self.UserAuth.login(username, password)
+        try:
+            success, mes = self.UserAuth.login(username, password)
+        except Exception as e:
+            self.isLogining = False
+            self.login_Button.setDisabled(False)
+            QMessageBox.information(self, "提示", "登录失败，错误信息: %s" % e, QMessageBox.Ok)
+            return None
+        if mes == "登录失败, 需要空间推理验证":
+            # 打开验证窗口
+            self.open_login_captcha_window()
+            return None
         self.isLogining = False
         if not success:
             self.login_Button.setDisabled(False)
@@ -243,6 +254,48 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.show_user_info()
         QMessageBox.information(self, "提示", mes, QMessageBox.Ok)
         self.show_create_task_page()
+
+    def open_login_captcha_window(self):
+        # 打开验证码窗口
+        def login_verify_success(token):
+            success, mes = self.UserAuth.abnormal_login_code_validate(token)
+            self.isLogining = False
+            if not success:
+                self.login_Button.setDisabled(False)
+                QMessageBox.information(self, "提示", mes, QMessageBox.Ok)
+                return None
+            # 登录成功
+            self.logger.info(mes)
+            if is_save_cookies():
+                # 保存cookies
+                save_cookies(self.session)
+                self.logger.info("cookies已保存")
+                self.logger.debug("cookies: \n%s" % get_cookies())
+            self.isLogin = True
+            self.login_Button.setDisabled(False)
+            self.show_user_info()
+            QMessageBox.information(self, "提示", mes, QMessageBox.Ok)
+            self.show_create_task_page()
+
+        def login_verify_fail():
+            self.isLogining = False
+            self.login_Button.setDisabled(False)
+            if self.isLogin:
+                return None
+            QMessageBox.information(self, "提示", "登录失败", QMessageBox.Ok)
+
+        self.login_captcha = LoginCaptchaGUI(
+            session=self.session,
+            logger_instance=self.logger,
+        )
+        # 设置新窗口在顶层
+        self.login_captcha.setWindowFlags(self.login_captcha.windowFlags())
+        self.login_captcha.load_captcha()
+        self.login_captcha.show()
+        # 绑定信号
+        self.login_captcha.verify_success.connect(login_verify_success)
+        self.login_captcha.verify_fail.connect(login_verify_fail)
+
 
     def refresh_qrcode(self):
         def handle_info_message(success, message):
@@ -318,8 +371,6 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
     def verify_fail(self):
         self.study_thread.SSC.set_verify_failed()
         self.captcha.close()
-
-
 
     def create_task(self):
         """创建任务"""
@@ -541,6 +592,117 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
             event.ignore()
 
 
+class LoginCaptchaGUI(QtWidgets.QWidget, Ui_CaptchaGUI):
+    # 绑定信号
+    verify_success = QtCore.pyqtSignal(str)
+    verify_fail = QtCore.pyqtSignal()
+
+    def __init__(self, session=None, logger_instance=None):
+        super(LoginCaptchaGUI, self).__init__()
+        self.setupUi(self)
+        self.setGeometry(0, 0, 400, 300)
+        self.center()
+        self.setWindowIcon(QtGui.QIcon(ICON_PATH))
+
+        # 绑定按钮事件
+        self.verify_Button.clicked.connect(self.verify)
+        # 禁用按钮
+        self.verify_Button.setEnabled(False)
+
+        # 初始化
+        self.session = session
+        self.logger = logger_instance
+
+        self.SI = SpaceInference(get_space_inference_captcha_id())
+        self.SI.captcha_data['type'] = '11'
+        self.SI.captcha_data['v'] = get_space_inference_captcha_v()
+        self.position = {'x': 0.00, 'y': 0.00}
+        self.captcha_data = None
+
+
+    def load_captcha(self):
+        """加载验证码"""
+        self.verify_Button.setEnabled(False)
+        # 获取验证码数据
+        self.captcha_data = self.SI.get_captcha()
+        captcha_image_urls = self.captcha_data.get('data', {}).get('bg', None)
+        if captcha_image_urls is None:
+            return
+        self.logger.debug("captcha_img_url: %s" % captcha_image_urls[0])
+        try:
+            img_data = download_image(self.session, captcha_image_urls[0])
+        except Exception as e:
+            # 弹窗警告窗口
+            QMessageBox.warning(self, "警告", "无法获取验证图片，错误信息: %s" % e, QMessageBox.Yes)
+            self.logger.error("无法获取验证图片，错误信息: %s" % e)
+            return None
+        if img_data is None:
+            self.logger.warning("无法获取验证图片")
+            return None
+        # 将图片显示在标签上
+        image = QtGui.QPixmap()
+        image.loadFromData(img_data)
+        scaled_image = image.scaled(320, 160, aspectRatioMode=QtCore.Qt.KeepAspectRatio)
+        self.captcha_img.setPixmap(scaled_image)
+        self.captcha_img.setScaledContents(True)
+        # 设置提示
+        prompt = self.captcha_data.get('data', {}).get('front', None)
+        self.logger.debug("captcha_prompt: %s" % prompt)
+        if prompt is None:
+            return
+        self.captcha_prompt.setText(prompt)
+
+    def verify(self):
+        """验证"""
+        self.verify_Button.setEnabled(False)
+        x = self.position['x']
+        y = self.position['y']
+        self.SI.check(x, y)
+        self.logger.debug("验证结果: %s" % self.SI.result)
+        token = self.SI.secure_captcha
+        if token is None:
+            # 弹窗警告窗口
+            QMessageBox.warning(self, "警告", "验证失败，请重试", QMessageBox.Yes)
+            # 重新加载验证码
+            self.load_captcha()
+            return
+        self.logger.debug("token: %s" % token)
+        # 验证成功，返回token
+        self.verify_success.emit(token)
+        self.close()
+
+    def closeEvent(self, event):
+        """关闭窗口事件"""
+        self.verify_fail.emit()
+        event.accept()
+
+    def mousePressEvent(self, event):
+        # 获取鼠标点击事件的位置
+        pos = event.pos()
+        # 判断点击是否在标签上
+        if self.captcha_img.geometry().contains(pos):
+            # 保留两位小数
+            x = float('%.2f' % ((pos.x() - 40) / 320))
+            y = float('%.2f' % ((pos.y() - 10) / 160))
+
+            self.position['x'] = x
+            self.position['y'] = y
+            self.position_x.setText(str(self.position['x']))
+            self.position_y.setText(str(self.position['y']))
+            self.logger.debug('点击了标签，位置： %s, %s' % (x, y))
+            # 启用按钮
+            self.verify_Button.setEnabled(True)
+
+    def center(self):
+        """居中显示"""
+        screen = QDesktopWidget().screenGeometry()
+        size = self.geometry()
+        self.move(
+            int((screen.width() - size.width()) / 2),
+            int((screen.height() - size.height()) / 2)
+        )
+
+
 class CaptchaGUI(QtWidgets.QWidget, Ui_CaptchaGUI):
     # 绑定信号
     verify_success = QtCore.pyqtSignal()
@@ -569,7 +731,6 @@ class CaptchaGUI(QtWidgets.QWidget, Ui_CaptchaGUI):
         self.captcha_data = None
         self.token = None
         # self.load_captcha()
-
 
 
     def load_captcha(self):

@@ -28,7 +28,7 @@ def run(speed=1):
         success, mes = UH.login()
         logger.info(mes)
         if not success:
-            logger.info("登录失败")
+            print("登录失败")
             exit(0)
     logger.info("验证身份成功")
 

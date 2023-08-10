@@ -113,12 +113,53 @@ class UserHandler:
         if response.status_code != 200:
             return False, f"登录失败, status_code: {response.status_code}"
         data = response.json()
-        if data.get("status", 0) == -2:
-            return False, f"登录失败, 账号或密码错误"
-        elif data.get("status", 0) == 1:
+        if data.get("status", 0) == 1:
             self.pwd = data.get("pwd", None)
             return True, "登录成功"
+        elif data.get("status", 0) == -2:
+            return False, "登录失败, 账号或密码错误"
+        elif data.get("status", 0) == -4:
+            return False, "登录失败, 验证码错误"
+        elif data.get("status", 0) == -5:
+            return False, "应网络安全要求，您的密码安全级别太低，为了保障您的账户安全，请立即修改密码"
+        elif data.get("status", 0) == -6:
+            return False, "登录失败, 连续登陆5次错误, 禁止5分钟"
+        elif data.get("status", 0) == -8:
+            return False, "登录失败, 需要教师验证, 请用手机号登录"
+        elif data.get("status", 0) == -9:
+            return False, "登录失败, 账户存在异常活动, 请前往网页验证手机号"
+        elif data.get("status", 0) == -10:
+            return False, "你已被禁止登录, 由于你未通过验证, 今日24:00点以前将无法登录智慧树"
+        elif data.get("status", 0) == -11:
+            return False, "登录失败, 服务异常, 请稍后再试"
+        elif data.get("status", 0) == -12:
+            return False, "登录失败, 发现有异常学习行为, 请前往网页解除"
+        elif data.get("status", 0) == -13:
+            return False, "登录失败, 需要空间推理验证"
         return False, f"登录失败, response: {response.text}"
+
+    def abnormal_login_code_validate(self, validate_code):
+        url = "https://passport.zhihuishu.com/user/abnormalLoginCodeValidate"
+        data = {
+            "code": validate_code
+        }
+        response = self.session.post(url, headers=self.headers, data=data)
+        if response.status_code != 200:
+            return False, f"验证失败, status_code: {response.status_code}"
+        try:
+            data = response.json()
+        except Exception as e:
+            return False, f"验证失败, response: {response.text}"
+        if data.get("status", 0) == 1:
+            self.pwd = data.get("pwd", None)
+            return self.pwd_login()
+        elif data.get("status", 0) == 2:
+            return False, "你已被禁止登录, 由于你未通过验证, 今日24:00点以前将无法登录智慧树"
+        elif data.get("status", 0) == 3:
+            return False, "短信验证码错误"
+        elif data.get("status", 0) == 4:
+            return False, "滑块验证码错误"
+        return False, f"验证失败, response: {response.text}"
 
     def gologin(self, url):
         """获取cookies关键内容"""
@@ -201,29 +242,29 @@ class UserHandler:
             while True:
                 data = json.loads(await websocket.recv())
                 msg = data.get("msg", "Unknown Message")
-                match data.get("code", 0):
-                    case 0:
-                        if logger:
-                            logger.info(msg)
-                        callback_info(msg)
-                    case 1:
-                        if logger:
-                            logger.info(msg)
-                        callback_info(msg)
-                        self.pwd = data.get("oncePassword", None)
-                        success, msg = self.pwd_login()
-                        callback(success, msg)
-                        return None
-                    case 2:
-                        if logger:
-                            logger.warning(msg)
-                        callback(False, msg)
-                        return None
-                    case _:
-                        if logger:
-                            logger.warning(msg)
-                        callback(False, msg)
-                        return None
+                code = data.get("code", -1)
+                if code == 0:
+                    if logger:
+                        logger.info(msg)
+                    callback_info(msg)
+                elif code == 1:
+                    if logger:
+                        logger.info(msg)
+                    callback_info(msg)
+                    self.pwd = data.get("oncePassword", None)
+                    success, msg = self.pwd_login()
+                    callback(success, msg)
+                    return None
+                elif code == 2:
+                    if logger:
+                        logger.warning(msg)
+                    callback(False, msg)
+                    return None
+                else:
+                    if logger:
+                        logger.warning(msg)
+                    callback(False, msg)
+                    return None
 
     def save_cookies(self):
         """保存cookies至本地"""

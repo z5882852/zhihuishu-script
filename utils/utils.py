@@ -81,7 +81,7 @@ def cookie_jar_to_list(cookie_jar: RequestsCookieJar):
     return cookies
 
 
-def list_to_cookie_jar(cookies_list: list[dict]):
+def list_to_cookie_jar(cookies_list):
     cookie_jar = RequestsCookieJar()
     for cookie_dict in cookies_list:
         cookie = create_cookie(
