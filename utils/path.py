@@ -10,6 +10,9 @@ CONFIG_PATH = os.path.join(ROOT_PATH, "config.ini")
 CONFIG_TEMPLATE_PATH = os.path.join(RES_PATH, "template", "config.ini.template")
 NODEJS_PATH = os.path.join(RES_PATH, "node.exe")
 
+# Linux系统请在这里设置NodeJs路径
+# NODEJS_PATH = os.path.join(os.path.dirname("/usr/local/bin/"), "node")
+
 CAPTCHA_PATH = os.path.join(ROOT_PATH, "captcha")
 
 CAPTCHA_ACTOKEN_JS_PATH = os.path.join(CAPTCHA_PATH, "js", "actoken.js")

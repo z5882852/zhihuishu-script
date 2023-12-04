@@ -101,6 +101,12 @@ python main.py --cmd
 > 第一次运行会生成配置文件，配置文件路径为项目目录下的`config.ini`文件，请根据自己的需求修改配置文件
 
 ## 一些说明
+### Linux系统运行
+由于Windows和Linux系统的Nodejs不兼容，所以Linux系统请修改`utils\path.py`中的`NODEJS_PATH`
+
+如果您没有安装NodeJs，请从官网下载，并修改`NODEJS_PATH`的根目录。
+
+
 ### cookies
 由于cookies中包含了用户的登录凭证，所以请不要将cookies泄露给他人
 ### 异地登录问题
