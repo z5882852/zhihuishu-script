@@ -1,5 +1,8 @@
 import json
+import sys
 import time
+import traceback
+
 import requests
 
 from urllib.parse import unquote
@@ -95,8 +98,15 @@ class StudyShareCourse:
                 break
             except Exception as e:
                 error_num += 1
+                # 获取堆栈信息
+                ex_type, ex_val, ex_stack = sys.exc_info()
+                stack = []
+                for i in traceback.format_tb(ex_stack):
+                    stack.append(i)
+                stack = "".join(stack)
                 self.show_study_info_callback(f"发生错误: {e}")
                 self.logger.warning(e)
+                self.logger.warning(stack)
 
     def init(self):
         # 获取用户uuid

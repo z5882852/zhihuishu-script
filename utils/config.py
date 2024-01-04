@@ -39,7 +39,7 @@ def get_settings_config():
 
 
 def is_save_cookies():
-    return get_config().get('settings', 'save_cookies')
+    return get_config().get('settings', 'save_cookies') == "true"
 
 
 def get_error_retry():

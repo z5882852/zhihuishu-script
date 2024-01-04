@@ -57,7 +57,6 @@ def get_secure_captcha(validate, fp, zoneId):
 
 def get_check_data(token, x, y):
     ctx = get_ctx(file_path.CAPTCHA_SC_JS_PATH)
-    # ctx = get_ctx("js/secureCaptcha.js")
     return ctx.call('get_data', token, x, y)
 
 
@@ -82,7 +81,7 @@ class SpaceInference:
         self.captcha_id = captcha_id
         self.captcha_data = {
             'v': 'e2891084',
-            'version': '2.21.5',
+            'version': '2.24.0',
             'type': '2',
         }
         self.crypto_param = crypto_params()

@@ -19,8 +19,3 @@ CAPTCHA_ACTOKEN_JS_PATH = os.path.join(CAPTCHA_PATH, "js", "actoken.js")
 CAPTCHA_CB_JS_PATH = os.path.join(CAPTCHA_PATH, "js", "cb.js")
 CAPTCHA_FP_JS_PATH = os.path.join(CAPTCHA_PATH, "js", "fp.js")
 CAPTCHA_SC_JS_PATH = os.path.join(CAPTCHA_PATH, "js", "secureCaptcha.js")
-
-
-CAPTCHA_IMG_1_PATH = os.path.join(CAPTCHA_PATH, "img", "1.png")
-CAPTCHA_IMG_2_PATH = os.path.join(CAPTCHA_PATH, "img", "2.jpg")
-CAPTCHA_IMG_3_PATH = os.path.join(CAPTCHA_PATH, "img", "3.png")

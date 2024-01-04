@@ -26,17 +26,21 @@ def get_validate():
     :return: secure_captcha validate
     """
     # 初始化验证id
-    yd = yidun(get_login_captcha_id())
+    captcha_id = get_login_captcha_id()
+    yd = yidun(captcha_id)
     # 设置参数
-    yd.captcha_data['v'] = get_login_captcha_v()
+    params = {
+        'v': get_login_captcha_v(),
+    }
+    yd.captcha_data.update(params)
     # 获取加密的验证码
-    yd.validate()
+    yd.get_validate()
     return yd.secure_captcha
 
 
 def get_secret_str(username, password):
     """
-    根据用户名、密码计算secretStr(登录参数)
+    根据用户名、密码和验证码计算secretStr(登录参数)
     :param username: 用户名
     :param password: 密码
     :return: secretStr
@@ -225,6 +229,8 @@ class UserHandler:
             "img": img
         }
 
+
+
     async def validate_qr_code(self, qr_token, callback=None, callback_info=None, logger=None):
         """
         验证二维码
@@ -237,34 +243,34 @@ class UserHandler:
         params = {
             "qrToken": qr_token
         }
-        url = f"wss://appcomm-user.zhihuishu.com/app-commserv-user/websocket?{urllib.parse.urlencode(params)}"
-        async with websockets.connect(url, extra_headers=self.session.headers) as websocket:
-            while True:
-                data = json.loads(await websocket.recv())
-                msg = data.get("msg", "Unknown Message")
-                code = data.get("code", -1)
-                if code == 0:
-                    if logger:
-                        logger.info(msg)
-                    callback_info(msg)
-                elif code == 1:
-                    if logger:
-                        logger.info(msg)
-                    callback_info(msg)
-                    self.pwd = data.get("oncePassword", None)
-                    success, msg = self.pwd_login()
-                    callback(success, msg)
-                    return None
-                elif code == 2:
-                    if logger:
-                        logger.warning(msg)
-                    callback(False, msg)
-                    return None
-                else:
-                    if logger:
-                        logger.warning(msg)
-                    callback(False, msg)
-                    return None
+        url = "https://passport.zhihuishu.com/qrCodeLogin/getLoginQrInfo"
+        while True:
+            response = self.session.get(url, params=params)
+            if response.status_code != 200:
+                callback(False, f"验证失败, status_code: {response.status_code}")
+                return None
+            data = response.json()
+            code = data.get("status", -2)
+            msg = data.get("msg", "未知错误")
+            if code == -1:
+                time.sleep(1)
+                continue
+            elif code == 0:
+                callback_info(msg)
+            elif code == 1:
+                callback_info(msg)
+                self.pwd = data.get("oncePassword", None)
+                success, msg = self.pwd_login()
+                callback(success, msg)
+                return None
+            elif code == 2:
+                callback(False, msg)
+                return None
+            else:
+                if logger:
+                    logger.warning(msg)
+                callback(False, msg)
+                return None
 
     def save_cookies(self):
         """保存cookies至本地"""

@@ -4,7 +4,6 @@ import math
 import random
 import execjs
 import requests
-from urllib import request
 import numpy as np
 from execjs import _runner_sources
 from captcha.gap import get_gap
@@ -97,22 +96,28 @@ class crypto_params:
 
 
 class yidun:
-    def __init__(self, captcha_id=''):
+    def __init__(self, captcha_id='', captcha_data=None, actoken=False):
         """
         获取网易易盾的validate
-        :param id: 网易易盾的CAPTCHA_ID
+        :param captcha_id: 网易易盾的CAPTCHA_ID
+        :param captcha_data: 验证码参数设置
+        :param actoken: 是否启用actoken
         """
         self.captcha_id = captcha_id
         self.captcha_data = {
-            'v': 'e2891084',
-            'version': '2.21.5',
+            'v': 'af2952a4',
+            'version': '2.24.0',
             'type': '2',
+            'referer': 'https://passport.zhihuishu.com/login'
         }
+        if captcha_data:
+            self.captcha_data.update(captcha_data)
         self.result = None
         self.secure_captcha = None
+        self.validate = None
         self.counter = 0
+        self.actoken = actoken
         self.fp = ""
-        self.validate()
 
     def get_actoken_median(self, ctx, rdtm):
         """
@@ -156,7 +161,7 @@ class yidun:
         r = requests.post('https://ac.dun.163yun.com/v3/b', data=data, headers=headers)
         return did
 
-    def validate(self, actoken=None):
+    def get_validate(self, actoken=None):
         headers = {
             'Accept': '*/*',
             'Accept-Encoding': 'gzip, deflate',
@@ -192,24 +197,23 @@ class yidun:
             "referer": "",
             "callback": callback
         }
-        r = requests.get('https://c.dun.163.com/api/v2/get', params=data, headers=headers, timeout=2)
+        r = requests.get('https://c.dun.163.com/api/v2/get', params=data, headers=headers)
+        if r.status_code != 200:
+            raise Exception("请求get接口错误！请检查captcha_id是否正确或网络是否可用。")
         data_ = json.loads(re.findall('.*?\((.*?)\);', r.text)[0])
         token = data_['data']['token']
-        request.urlretrieve(data_['data']['front'][0], file_path.CAPTCHA_IMG_1_PATH)
-        request.urlretrieve(data_['data']['bg'][0], file_path.CAPTCHA_IMG_2_PATH)
-        distance = get_gap() + 5
+
+        img1 = requests.get(data_.get('data').get('front')[0]).content
+        img2 = requests.get(data_.get('data').get('bg')[0]).content
+        distance = get_gap(img1, img2) + 5
+
         trace = get_track(distance)
         left = trace[-1][0] - 10
         data_ = crypto_param.get_data(token, trace, left)
         cb = crypto_param.get_cb()
 
         # 生成actoken
-        ctx = get_ctx(file_path.CAPTCHA_ACTOKEN_JS_PATH)
-        rdtm = ctx.call('rdtm')
-        did = self.get_actoken_median(ctx, rdtm)
-        if not actoken:
-            actoken = ctx.call('actoken', rdtm, did)
-
+        actoken = "undefined"
         # 提交验证部分
         get_data = {
             "id": self.captcha_id,
@@ -226,15 +230,19 @@ class yidun:
             "callback": "__JSONP_48mk47t_1"
         }
         r = requests.get('https://c.dun.163.com/api/v2/check', headers=headers, params=get_data)
-        if self.counter == 1:
-            try:
-                data = r.text[18:-2]
-                self.result = json.loads(data)
-                self.secure_captcha = get_secure_captcha(self.result['data']['validate'], self.fp, self.result['data']['zoneId'])
-            except:
-                pass
-        else:
+        try:
+            data = r.text[18:-2]
+            self.result = json.loads(data)
+            if self.result.get("data", {}).get("result", False):
+                self.validate = self.result['data']['validate']
+                self.secure_captcha = get_secure_captcha(self.validate, self.fp, self.result['data']['zoneId'])
+            else:
+                if self.counter == 2:
+                    return
+                self.counter += 1
+                self.get_validate(actoken)
+        except:
             self.counter += 1
-            self.validate(actoken)
+            self.get_validate(actoken)
 
 

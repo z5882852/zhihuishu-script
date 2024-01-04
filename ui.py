@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QMessageBox, QDesktopWidget
 
 from captcha.space_inference import SpaceInference
 from components.captcha_ui import Ui_CaptchaGUI
-from utils.config import is_save_cookies, get_settings_config, get_config
+from utils.config import is_save_cookies, get_settings_config, get_config, get_user
 from utils.encrypt import get_space_inference_captcha_id, get_space_inference_captcha_v
 from utils.logger import Logger
 from utils.path import ICON_PATH, USER_IMG_PATH
@@ -103,6 +103,10 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
                 self.logger.info("无法验证用户")
                 # 清除cookies
                 self.session.cookies = requests.utils.cookiejar_from_dict({})
+                # 将配置的用户名和密码设置到输入框
+                user = get_user()
+                self.Username_Input.setText(user.get("username", ""))
+                self.Password_Input.setText(user.get("password", ""))
                 return None
         except Exception as e:
             self.logger.error("无法验证用户，错误信息: %s" % e)
@@ -128,6 +132,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
             self.logger.debug("img_url: %s" % img_url)
             self.logger.warning("无法获取用户头像，使用默认头像")
             return None
+        # 将图片显示在标签上
         image = QtGui.QPixmap()
         image.loadFromData(img_data)
         scaled_image = image.scaled(260, 260, aspectRatioMode=QtCore.Qt.KeepAspectRatio)
@@ -137,12 +142,14 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.userImg_label.setScaledContents(True)
 
     def show_login_page(self):
+        """显示登录页面"""
         if self.stackedWidget_content.currentIndex() == 0:
             return None
         self.stackedWidget_content.setCurrentIndex(0)
         self.stackedWidget_login.setCurrentIndex(0)
 
     def show_create_task_page(self):
+        """显示任务创建页面"""
         if self.stackedWidget_content.currentIndex() == 1:
             return None
         self.stackedWidget_content.setCurrentIndex(1)
@@ -150,17 +157,20 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.courseType_comboBox_currentIndexChanged(index)
 
     def show_progress_page(self):
+        """显示任务进度页面"""
         if self.stackedWidget_content.currentIndex() == 2:
             return None
         self.stackedWidget_content.setCurrentIndex(2)
 
     def show_setting_page(self):
+        """显示设置页面"""
         if self.stackedWidget_content.currentIndex() == 3:
             return None
         self.stackedWidget_content.setCurrentIndex(3)
         self.load_settings()
 
     def show_qrcode_page(self):
+        """显示二维码页面"""
         if self.stackedWidget_login.currentIndex() == 1:
             return None
         if self.isLogin:
@@ -231,6 +241,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         except Exception as e:
             self.isLogining = False
             self.login_Button.setDisabled(False)
+            self.logger.error("登录失败，错误信息: %s" % e)
             QMessageBox.information(self, "提示", "登录失败，错误信息: %s" % e, QMessageBox.Ok)
             return None
         if mes == "登录失败, 需要空间推理验证":
@@ -296,7 +307,6 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.login_captcha.verify_success.connect(login_verify_success)
         self.login_captcha.verify_fail.connect(login_verify_fail)
 
-
     def refresh_qrcode(self):
         def handle_info_message(success, message):
             self.isLogin = success
@@ -330,6 +340,7 @@ class MainGUI(QtWidgets.QWidget, Ui_MainGUI):
         self.refresh_thread.start()
 
     def handle_qr_code_validation(self, is_login):
+        """处理二维码验证"""
         if not is_login:
             return None
         if is_save_cookies():

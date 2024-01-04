@@ -1,23 +1,25 @@
 # -*- coding: utf-8 -*-
 
 import cv2
-from utils import path as file_path
+import numpy as np
 
 class SlideCrack(object):
-    def __init__(self, gap, bg, out):
+    def __init__(self, gap, bg):
         """
         init code
         :param gap: 缺口图片
         :param bg: 背景图片
-        :param out: 输出图片
         """
         self.gap = gap
         self.bg = bg
-        self.out = out
 
-    @staticmethod
-    def clear_white(img):
-        img = cv2.imread(img)
+    def bytes_to_cv2(self, img, flags=1):
+        img_buffer_np = np.frombuffer(img, dtype=np.uint8)
+        img_np = cv2.imdecode(img_buffer_np, flags)
+        return img_np
+
+    def clear_white(self, img):
+        img = self.bytes_to_cv2(img)
         rows, cols, channel = img.shape
         min_x = 255
         min_y = 255
@@ -40,26 +42,22 @@ class SlideCrack(object):
         return img1
 
     def template_match(self, tpl, target):
-        th, tw = tpl.shape[:2]
         result = cv2.matchTemplate(target, tpl, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
         tl = max_loc
-        br = (tl[0] + tw, tl[1] + th)
-        cv2.rectangle(target, tl, br, (0, 0, 255), 2)
-        cv2.imwrite(self.out, target)
         return tl[0]
 
-    @staticmethod
-    def image_edge_detection(img):
+    def image_edge_detection(self, img):
         edges = cv2.Canny(img, 100, 200)
         return edges
 
     def discern(self):
         img1 = self.clear_white(self.gap)
+
         img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY)
         slide = self.image_edge_detection(img1)
 
-        back = cv2.imread(self.bg, 0)
+        back = self.bytes_to_cv2(self.bg, 0)
         back = self.image_edge_detection(back)
 
         slide_pic = cv2.cvtColor(slide, cv2.COLOR_GRAY2RGB)
@@ -69,9 +67,6 @@ class SlideCrack(object):
         return x
 
 
-def get_gap():
-    image1 = file_path.CAPTCHA_IMG_1_PATH
-    image2 = file_path.CAPTCHA_IMG_2_PATH
-    image3 = file_path.CAPTCHA_IMG_3_PATH
-    sc = SlideCrack(image1, image2, image3)
+def get_gap(img_1, img_2):
+    sc = SlideCrack(img_1, img_2)
     return sc.discern()
