@@ -1,8 +1,0 @@
-numpy
-opencv_contrib_python
-opencv_python
-opencv_python_headless
-pycryptodome
-PyExecJS
-PyQt5_sip
-websockets

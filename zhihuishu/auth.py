@@ -11,9 +11,7 @@ import base64
 import json
 import time
 import urllib
-
 import requests
-import websockets
 
 from captcha.captcha import yidun
 from utils.encrypt import get_login_captcha_id, get_login_captcha_v
