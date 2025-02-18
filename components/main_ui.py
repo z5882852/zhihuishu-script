@@ -347,7 +347,7 @@ class Ui_MainGUI(object):
         self.maxStudyTime_spinBox.setReadOnly(False)
         self.maxStudyTime_spinBox.setAccelerated(False)
         self.maxStudyTime_spinBox.setKeyboardTracking(True)
-        self.maxStudyTime_spinBox.setMaximum(180)
+        self.maxStudyTime_spinBox.setMaximum(10800)
         self.maxStudyTime_spinBox.setObjectName("maxStudyTime_spinBox")
         self.horizontalLayout_8.addWidget(self.maxStudyTime_spinBox)
         self.label_9 = QtWidgets.QLabel(self.layoutWidget_3)
